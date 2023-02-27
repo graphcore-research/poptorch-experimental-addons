@@ -6,26 +6,25 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   ci:
     runs-on: ubuntu-latest
     container: graphcore/pytorch:3.1.0-ubuntu-20.04
     timeout-minutes: 10
     steps:
-      - name: Cancel previous
-        uses: styfle/cancel-workflow-action@0.11.0
-        with:
-          access_token: ${{ github.token }}
-        if: ${{github.ref != 'refs/head/main'}}
       - uses: actions/checkout@v3
       - name: Install dependencies
         run: pip install -r requirements-dev.txt
       - name: Run CI
         run: ./dev ci
-      # Dockerized workflow known to create issues with self-hosted servers.
-      # Solution is to fully cleanup the workspace for the next action.
-      # See: https://stackoverflow.com/questions/70483902/how-to-actually-clean-up-the-repository-on-self-hosted-runner-after-github-actio
-      - name: Cleanup GITHUB_WORKSPACE folder
-        run: |
-          rm -rf ./* || true
-          rm -rf ./.??* || true
+      - name: Publish documentation
+        #if: ${{github.ref == 'refs/heads/main'}}
+        uses: Cecilapp/GitHub-Pages-deploy@v3
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          build_dir: doc
