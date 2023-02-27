@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>poptorch_experimental_addons.sparse API documentation</title>
+<meta name="description" content="Static sparse-dense matrix multiplication …" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>poptorch_experimental_addons.sparse</code></h1>
+</header>
+<section id="section-intro">
+<p>Static sparse-dense matrix multiplication.</p>
+<p>These APIs are based on a block COO format, created as:</p>
+<pre><code class="language-python">T.sparse_coo_tensor(indices, values, size=(n_rows, n_cols))
+#   indices -- shape (2, nnz_blocks) -- row and column block indices
+#   values -- shape (nnz_blocks, block_size, block_size)
+</code></pre>
+<p>To transpose &amp; convert to dense correctly, use the included functions
+<code><a title="poptorch_experimental_addons.sparse.block_coo_transpose" href="#poptorch_experimental_addons.sparse.block_coo_transpose">block_coo_transpose()</a></code> and <code><a title="poptorch_experimental_addons.sparse.block_coo_to_dense" href="#poptorch_experimental_addons.sparse.block_coo_to_dense">block_coo_to_dense()</a></code>.</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python"># Copyright (c) 2023 Graphcore Ltd. All rights reserved.
+
+from ._impl.sparse import *  # NOQA:F401,F403
+from ._impl.sparse import __all__, __doc__  # NOQA:F401</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="poptorch_experimental_addons.sparse.block_coo_spmm"><code class="name flex">
+<span>def <span class="ident">block_coo_spmm</span></span>(<span>sparse: torch.Tensor, dense: torch.Tensor, mode: str) ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<div class="desc"><p>A block-COO matrix multiplication.</p>
+<ul>
+<li>if <code>mode=="sparse_dense"</code>, <code>y = sparse @ dense</code></li>
+<li>if <code>mode=="dense_sparse"</code>, <code>y = dense @ sparse</code></li>
+</ul>
+<p>sparse &ndash; T.sparse_coo_tensor &ndash; should be coalesced, dimensions
+<code>(blocks_row, blocks_col, block_size_row, block_size_col)</code></p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def block_coo_spmm(sparse: T.Tensor, dense: T.Tensor, mode: str) -&gt; T.Tensor:
+    &#34;&#34;&#34;A block-COO matrix multiplication.
+
+    - if `mode==&#34;sparse_dense&#34;`, `y = sparse @ dense`
+    - if `mode==&#34;dense_sparse&#34;`, `y = dense @ sparse`
+
+    sparse -- T.sparse_coo_tensor -- should be coalesced, dimensions
+              `(blocks_row, blocks_col, block_size_row, block_size_col)`
+    &#34;&#34;&#34;
+    if poptorch.isRunningOnIpu():
+        return block_coo_spmm_ipu(sparse, dense, mode)
+    return block_coo_spmm_gs(sparse, dense, mode)</code></pre>
+</details>
+</dd>
+<dt id="poptorch_experimental_addons.sparse.block_coo_spmm_gs"><code class="name flex">
+<span>def <span class="ident">block_coo_spmm_gs</span></span>(<span>sparse: torch.Tensor, dense: torch.Tensor, mode: str) ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Implement a block sparse COO matmul "manually" using gather-multiply-scatter.</p>
+<p>See <code><a title="poptorch_experimental_addons.sparse.block_coo_spmm" href="#poptorch_experimental_addons.sparse.block_coo_spmm">block_coo_spmm()</a></code>.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def block_coo_spmm_gs(sparse: T.Tensor, dense: T.Tensor, mode: str) -&gt; T.Tensor:
+    &#34;&#34;&#34;Implement a block sparse COO matmul &#34;manually&#34; using gather-multiply-scatter.
+
+    See `block_coo_spmm()`.
+    &#34;&#34;&#34;
+    if sparse.layout != T.sparse_coo:
+        raise ValueError(f&#34;Expected sparse_coo `lhs`, actual layout: {sparse.layout}&#34;)
+
+    if mode == &#34;sparse_dense&#34;:
+        lhs = sparse
+        rhs = dense
+    elif mode == &#34;dense_sparse&#34;:
+        lhs = block_coo_transpose(sparse)
+        rhs = dense.T
+    else:
+        raise ValueError(
+            &#34;Expected block_coo_spmm_gs mode either &#39;sparse_dense&#39; or &#39;dense_sparse&#39;&#34;
+        )
+
+    blocks_out, blocks_in, block_size_out, block_size_in = lhs.shape
+    elements_in, batch_size = rhs.shape
+    elements_out = blocks_out * block_size_out
+    indices_out, indices_in = lhs.indices()
+
+    if elements_in != blocks_in * block_size_in:
+        raise ValueError(
+            f&#34;Block sparse input size ({blocks_in} blocks * {block_size_in})&#34;
+            f&#34; does not match dense input size ({elements_in})&#34;
+        )
+
+    # 1. Gather
+    inputs = rhs.view(blocks_in, block_size_in, batch_size)[indices_in]
+    # 2. Multiply
+    products = lhs.values() @ inputs
+    # 3. Scatter
+    output = T.scatter_add(
+        T.zeros(blocks_out, block_size_out, batch_size, dtype=rhs.dtype),
+        dim=0,
+        index=indices_out[:, None, None].expand(-1, block_size_out, batch_size),
+        src=products,
+    ).view(elements_out, batch_size)
+
+    return output.T if mode == &#34;dense_sparse&#34; else output</code></pre>
+</details>
+</dd>
+<dt id="poptorch_experimental_addons.sparse.block_coo_spmm_ipu"><code class="name flex">
+<span>def <span class="ident">block_coo_spmm_ipu</span></span>(<span>sparse: torch.Tensor, dense: torch.Tensor, mode: str) ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<div class="desc"><p>IPU-only spmm using <code>popsparse::static_::matMul</code>.</p>
+<p>See <code><a title="poptorch_experimental_addons.sparse.block_coo_spmm" href="#poptorch_experimental_addons.sparse.block_coo_spmm">block_coo_spmm()</a></code>.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def block_coo_spmm_ipu(sparse: T.Tensor, dense: T.Tensor, mode: str) -&gt; T.Tensor:
+    &#34;&#34;&#34;IPU-only spmm using `popsparse::static_::matMul`.
+
+    See `block_coo_spmm()`.
+    &#34;&#34;&#34;
+
+    if mode not in [&#34;sparse_dense&#34;, &#34;dense_sparse&#34;]:
+        raise ValueError(
+            &#34;Expected block_coo_spmm_ipu mode either &#39;sparse_dense&#39; or &#39;dense_sparse&#39;&#34;
+        )
+    if sparse.layout != T.sparse_coo:
+        raise ValueError(
+            &#34;block_coo_spmm_ipu requires `sparse` to be T.sparse_coo_tensor&#34;
+            f&#34;, actual {sparse.layout}&#34;
+        )
+    if sparse.sparse_dim() != 2 or sparse.dense_dim() != 2:
+        raise ValueError(
+            f&#34;block_coo_spmm_ipu requires `sparse` to be 2D block sparse, with&#34;
+            f&#34; sparse_dim ({sparse.sparse_dim()}) == 2&#34;
+            f&#34;, dense_dim ({sparse.dense_dim()}) == 2&#34;,
+        )
+    if sparse.shape[2] != sparse.shape[3]:
+        raise ValueError(
+            &#34;block_coo_spmm_ipu requires square blocks i.e. shape (*, *, B, B)&#34;
+            f&#34;, actual: {sparse.shape}&#34;
+        )
+    if len(dense.shape) != 2:
+        raise ValueError(
+            &#34;block_coo_spmm_ipu supports only 2D dense operands&#34;
+            f&#34;, actual shape: {sparse.shape}&#34;
+        )
+
+    if mode == &#34;sparse_dense&#34;:
+        output_shape = (sparse.shape[0] * sparse.shape[2], dense.shape[1])
+    elif mode == &#34;dense_sparse&#34;:
+        output_shape = (dense.shape[0], sparse.shape[1] * sparse.shape[3])
+
+    row_indices, col_indices = sparse.indices().numpy()
+    nzvalues = sparse.values().numpy().flatten()
+
+    y: T.Tensor
+    (y,) = poptorch.custom_op(
+        [dense],
+        name=&#34;StaticSparseMatmul&#34;,
+        domain=&#34;ai.graphcore&#34;,
+        domain_version=1,
+        example_outputs=[T.zeros(output_shape, dtype=dense.dtype, device=dense.device)],
+        attributes=dict(
+            mode=mode,
+            n_rows=sparse.shape[0] * sparse.shape[2],
+            n_cols=sparse.shape[1] * sparse.shape[3],
+            block_size=sparse.shape[2],
+            # Poplar expects (row, col) element indices, not block indices
+            rows=(sparse.shape[2] * row_indices).tolist(),
+            cols=(sparse.shape[3] * col_indices).tolist(),
+            values=nzvalues.tolist(),
+        ),
+    )
+    return y</code></pre>
+</details>
+</dd>
+<dt id="poptorch_experimental_addons.sparse.block_coo_to_dense"><code class="name flex">
+<span>def <span class="ident">block_coo_to_dense</span></span>(<span>tensor: torch.Tensor) ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Convert a block sparse tensor to dense.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def block_coo_to_dense(tensor: T.Tensor) -&gt; T.Tensor:
+    &#34;&#34;&#34;Convert a block sparse tensor to dense.&#34;&#34;&#34;
+    if tensor.sparse_dim() != tensor.dense_dim():
+        raise ValueError(
+            f&#34;Block COO requires sparse_dim ({tensor.sparse_dim()})&#34;
+            f&#34; == dense_dim ({tensor.dense_dim()})&#34;
+        )
+
+    rank = tensor.sparse_dim()
+
+    # interleave blocks &amp; block sizes
+    permutation = tuple(np.stack([range(rank), range(rank, 2 * rank)], -1).flatten())
+    blocks, block_size = np.array_split(tensor.shape, [rank])
+    shape = tuple(blocks * block_size)
+
+    return tensor.to_dense().permute(permutation).reshape(shape)</code></pre>
+</details>
+</dd>
+<dt id="poptorch_experimental_addons.sparse.block_coo_transpose"><code class="name flex">
+<span>def <span class="ident">block_coo_transpose</span></span>(<span>tensor: torch.Tensor) ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<div class="desc"><p>The 2D matrix transpose of a block sparse tensor.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def block_coo_transpose(tensor: T.Tensor) -&gt; T.Tensor:
+    &#34;&#34;&#34;The 2D matrix transpose of a block sparse tensor.&#34;&#34;&#34;
+    return tensor.permute(1, 0, 3, 2).coalesce()</code></pre>
+</details>
+</dd>
+<dt id="poptorch_experimental_addons.sparse.magnitude_prune"><code class="name flex">
+<span>def <span class="ident">magnitude_prune</span></span>(<span>matrix: torch.Tensor, block_size: int, density: float, ord: int = 2) ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Basic single-tensor block magnitude pruning.</p>
+<p>Groups <code>matrix</code> into blocks of size <code>block_size x block_size</code>, then
+creates a sparse COO tensor retaining the largest-magnitude blocks
+such that <code>result.values().nelement() / matrix.nelement() &lt;= density</code>.</p>
+<p>returns &ndash; Tensor &ndash; a COO block-sparse tensor of shape
+<code>(blocks_row, blocks_col, block_size, block_size)</code></p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def magnitude_prune(
+    matrix: T.Tensor, block_size: int, density: float, ord: int = 2
+) -&gt; T.Tensor:
+    &#34;&#34;&#34;Basic single-tensor block magnitude pruning.
+
+    Groups `matrix` into blocks of size `block_size x block_size`, then
+    creates a sparse COO tensor retaining the largest-magnitude blocks
+    such that `result.values().nelement() / matrix.nelement() &lt;= density`.
+
+    returns -- Tensor -- a COO block-sparse tensor of shape
+               `(blocks_row, blocks_col, block_size, block_size)`
+    &#34;&#34;&#34;
+    blocks = matrix.reshape(
+        matrix.shape[0] // block_size,
+        block_size,
+        matrix.shape[1] // block_size,
+        block_size,
+    )
+    norms = T.linalg.norm(blocks.float(), ord=ord, dim=(1, 3))
+    nnz_blocks = int(density * matrix.nelement() / block_size**2)
+    topk = T.topk(norms.view(-1), nnz_blocks).indices
+    indices = T.stack([topk // norms.shape[1], topk % norms.shape[1]])
+    return T.sparse_coo_tensor(
+        indices=indices,
+        values=blocks[indices[0], :, indices[1], :],
+        size=blocks.permute(0, 2, 1, 3).shape,
+    ).coalesce()</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="poptorch_experimental_addons.sparse.StaticSparseLinear"><code class="flex name class">
+<span>class <span class="ident">StaticSparseLinear</span></span>
+<span>(</span><span>weight: torch.Tensor)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>A linear layer with frozen sparse parameters.</p>
+<p>weight &ndash; shape <code>(out_features, in_features)</code></p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class StaticSparseLinear(T.nn.Module):
+    &#34;&#34;&#34;A linear layer with frozen sparse parameters.
+
+    weight -- shape `(out_features, in_features)`
+    &#34;&#34;&#34;
+
+    def __init__(self, weight: T.Tensor):
+        super().__init__()
+        self.weight = weight
+
+    def forward(self, x: T.Tensor) -&gt; T.Tensor:
+        return (StaticSparseMatrix(self.weight) @ x.T).T</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>torch.nn.modules.module.Module</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="poptorch_experimental_addons.sparse.StaticSparseLinear.dump_patches"><code class="name">var <span class="ident">dump_patches</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="poptorch_experimental_addons.sparse.StaticSparseLinear.training"><code class="name">var <span class="ident">training</span> : bool</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="poptorch_experimental_addons.sparse.StaticSparseLinear.forward"><code class="name flex">
+<span>def <span class="ident">forward</span></span>(<span>self, x: torch.Tensor) ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the :class:<code>Module</code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def forward(self, x: T.Tensor) -&gt; T.Tensor:
+    return (StaticSparseMatrix(self.weight) @ x.T).T</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="poptorch_experimental_addons.sparse.StaticSparseMatrix"><code class="flex name class">
+<span>class <span class="ident">StaticSparseMatrix</span></span>
+<span>(</span><span>matrix: torch.Tensor)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Convenience wrapper for <code>dense @ sparse</code> or <code>sparse @ dense</code>.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class StaticSparseMatrix:
+    &#34;&#34;&#34;Convenience wrapper for `dense @ sparse` or `sparse @ dense`.&#34;&#34;&#34;
+
+    matrix: T.Tensor
+
+    def __matmul__(self, rhs: T.Tensor) -&gt; T.Tensor:
+        return block_coo_spmm(self.matrix, rhs, mode=&#34;sparse_dense&#34;)
+
+    def __rmatmul__(self, lhs: T.Tensor) -&gt; T.Tensor:
+        return block_coo_spmm(self.matrix, lhs, mode=&#34;dense_sparse&#34;)</code></pre>
+</details>
+<h3>Class variables</h3>
+<dl>
+<dt id="poptorch_experimental_addons.sparse.StaticSparseMatrix.matrix"><code class="name">var <span class="ident">matrix</span> : torch.Tensor</code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="poptorch_experimental_addons" href="index.html">poptorch_experimental_addons</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="two-column">
+<li><code><a title="poptorch_experimental_addons.sparse.block_coo_spmm" href="#poptorch_experimental_addons.sparse.block_coo_spmm">block_coo_spmm</a></code></li>
+<li><code><a title="poptorch_experimental_addons.sparse.block_coo_spmm_gs" href="#poptorch_experimental_addons.sparse.block_coo_spmm_gs">block_coo_spmm_gs</a></code></li>
+<li><code><a title="poptorch_experimental_addons.sparse.block_coo_spmm_ipu" href="#poptorch_experimental_addons.sparse.block_coo_spmm_ipu">block_coo_spmm_ipu</a></code></li>
+<li><code><a title="poptorch_experimental_addons.sparse.block_coo_to_dense" href="#poptorch_experimental_addons.sparse.block_coo_to_dense">block_coo_to_dense</a></code></li>
+<li><code><a title="poptorch_experimental_addons.sparse.block_coo_transpose" href="#poptorch_experimental_addons.sparse.block_coo_transpose">block_coo_transpose</a></code></li>
+<li><code><a title="poptorch_experimental_addons.sparse.magnitude_prune" href="#poptorch_experimental_addons.sparse.magnitude_prune">magnitude_prune</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="poptorch_experimental_addons.sparse.StaticSparseLinear" href="#poptorch_experimental_addons.sparse.StaticSparseLinear">StaticSparseLinear</a></code></h4>
+<ul class="">
+<li><code><a title="poptorch_experimental_addons.sparse.StaticSparseLinear.dump_patches" href="#poptorch_experimental_addons.sparse.StaticSparseLinear.dump_patches">dump_patches</a></code></li>
+<li><code><a title="poptorch_experimental_addons.sparse.StaticSparseLinear.forward" href="#poptorch_experimental_addons.sparse.StaticSparseLinear.forward">forward</a></code></li>
+<li><code><a title="poptorch_experimental_addons.sparse.StaticSparseLinear.training" href="#poptorch_experimental_addons.sparse.StaticSparseLinear.training">training</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="poptorch_experimental_addons.sparse.StaticSparseMatrix" href="#poptorch_experimental_addons.sparse.StaticSparseMatrix">StaticSparseMatrix</a></code></h4>
+<ul class="">
+<li><code><a title="poptorch_experimental_addons.sparse.StaticSparseMatrix.matrix" href="#poptorch_experimental_addons.sparse.StaticSparseMatrix.matrix">matrix</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>
