@@ -1,0 +1,16 @@
+*.egg-info
+*.so
+
+.coverage
+.mypy_cache
+__pycache__
+.pytest_cache
+.venv
+.venvs
+.vscode
+
+/build
+/dist
+/doc
+/local
+/third_party
