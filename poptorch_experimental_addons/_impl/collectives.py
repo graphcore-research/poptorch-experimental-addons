@@ -5,6 +5,12 @@ import poptorch
 
 
 def replicated_all_gather(x: torch.Tensor, replication_factor: int) -> torch.Tensor:
+    """
+    SPMD all-gather across IPUs.
+
+    Gathers and concatenates tensors occupying the same memory location across IPUs,
+    then replicates the result.
+    """
     out = poptorch.custom_op(
         [x],
         name="ReplicatedAllGather",
