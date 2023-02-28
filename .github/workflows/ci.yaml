@@ -27,4 +27,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
-          build_dir: doc
+          build_dir: doc/poptorch_experimental_addons
