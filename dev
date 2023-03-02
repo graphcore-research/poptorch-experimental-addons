@@ -146,7 +146,7 @@ def doc() -> None:
     )
 
 
-@cli("--skip", nargs="*", help="commands to skip")
+@cli("--skip", nargs="*", default=[], help="commands to skip")
 def ci(skip: List[str] = []) -> None:
     """run all continuous integration tests & checks"""
     if "tests" not in skip:
