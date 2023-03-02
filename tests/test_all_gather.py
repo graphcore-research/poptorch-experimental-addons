@@ -42,19 +42,32 @@ def _apply_replica_grouping(model, comm_group_type, shards):
 
 def test_all_gather():
     set_seed(112358)
-    X = einops.rearrange(torch.arange(32, dtype=torch.float32), "(d n)  -> n d", n=4)
-    options = poptorch.Options()
     num_ipus = 2
+
+    X = einops.rearrange(torch.arange(32, dtype=torch.float32), "(d n)  -> n d", n=4)
+
+    options = poptorch.Options()
     options.replicationFactor(num_ipus)
     options.outputMode(poptorch.OutputMode.All)
     options.useIpuModel(True)
+    options.anchorTensor("grad_X", "Gradient___X")
     options._Popart.setPatterns({"OpToIdentity": True})
+
     model = _AllGatherCrossReplicaTester(deepcopy(X), num_ipus)
     optimizer = poptorch.optim.SGD(model.parameters(), lr=1.0)
     model = poptorch.trainingModel(model, options, optimizer)
     _apply_replica_grouping(model, CommGroupType.Orthogonal, 1)
+
     Y, _ = model()
     Y = einops.rearrange(Y, "(r s) n d -> r (s n) d", r=num_ipus, s=num_ipus)
     Y = Y.detach().cpu()
+
     torch.testing.assert_close(Y[0], X, rtol=0, atol=0)
     torch.testing.assert_close(Y[1], X, rtol=0, atol=0)
+
+    grad_X = model.getAnchoredTensor("grad_X")
+    torch.testing.assert_close(grad_X, torch.ones_like(X), rtol=0, atol=0)
+
+
+if __name__ == "__main__":
+    test_all_gather()
