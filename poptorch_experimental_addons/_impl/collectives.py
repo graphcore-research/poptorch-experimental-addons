@@ -35,4 +35,24 @@ def all_gather_cross_replica(x: torch.Tensor, replication_factor: int) -> Any:
     return out
 
 
+def all_reduce_cross_replica(x: torch.Tensor, replication_factor: int) -> Any:
+    """
+    All-reduce across IPU program replicas
+
+    Sums tensors occupying the same memory location across IPUs, resulting
+    in replicated tensors.
+
+    x -- shape (*)
+    returns -- shape (*)
+    """
+    out = poptorch.custom_op(
+        [x],
+        name="ReplicatedAllReduceTP",
+        domain="ai.graphcore",
+        domain_version=1,
+        example_outputs=[x],
+    )[0]
+    return out
+
+
 __all__ = ["all_gather_cross_replica"]
