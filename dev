@@ -82,15 +82,15 @@ def python(command: List[Any], gdb: bool) -> None:
 @cli()
 def lint() -> None:
     """run static analysis"""
-    run(["flake8", *PYTHON_ROOTS])
-    run(["mypy", *PYTHON_ROOTS])
+    run(["python", "-m", "flake8", *PYTHON_ROOTS])
+    run(["python", "-m", "mypy", *PYTHON_ROOTS])
 
 
 @cli("--check", action="store_true")
 def format(check: bool) -> None:
     """autoformat all sources"""
-    run(["black", "--check" if check else None, *PYTHON_ROOTS])
-    run(["isort", "--check" if check else None, *PYTHON_ROOTS])
+    run(["python", "-m", "black", "--check" if check else None, *PYTHON_ROOTS])
+    run(["python", "-m", "isort", "--check" if check else None, *PYTHON_ROOTS])
 
 
 @cli()
@@ -135,7 +135,9 @@ def doc() -> None:
     subprocess.call(["rm", "-r", "doc/poptorch_experimental_addons"])
     run(
         [
-            "pdoc3",
+            "python",
+            "-m",
+            "pdoc",
             "--html",
             "--output-dir",
             "doc",
@@ -144,14 +146,19 @@ def doc() -> None:
     )
 
 
-@cli()
-def ci() -> None:
+@cli("--skip", nargs="*", default=[], help="commands to skip")
+def ci(skip: List[str] = []) -> None:
     """run all continuous integration tests & checks"""
-    tests(filter=None, gdb=False)
-    lint()
-    format(check=True)
-    copyright()
-    doc()
+    if "tests" not in skip:
+        tests(filter=None, gdb=False)
+    if "lint" not in skip:
+        lint()
+    if "format" not in skip:
+        format(check=True)
+    if "copyright" not in skip:
+        copyright()
+    if "doc" not in skip:
+        doc()
 
 
 # Script
