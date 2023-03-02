@@ -35,6 +35,20 @@ class _AllGatherCrossReplicaTester(torch.nn.Module):
         return out, poptorch.identity_loss(out, reduction="sum")
 
 
+class _AllGatherSimulator(torch.nn.Module):
+    def __init__(self, X: torch.Tensor, replication_factor: int):
+        super().__init__()
+        self.X = nn.Parameter(
+            einops.rearrange(X, "(r n) d -> r n d", r=replication_factor).contiguous()
+        )
+        self.replication_factor = replication_factor
+
+    def forward(self) -> Tuple[Any, Any]:
+        out = torch.stack([self.X for _ in range(self.replication_factor)])
+        loss = out.sum(dim=list(range(out.ndim))[1:])
+        return torch.vstack([*out]), loss
+
+
 def _apply_replica_grouping(
     model: nn.Module, comm_group_type: CommGroupType, shards: int
 ) -> nn.Module:
@@ -53,6 +67,12 @@ def test_all_gather() -> None:
 
     X = einops.rearrange(torch.arange(32, dtype=torch.float32), "(d n)  -> n d", n=4)
 
+    sim = _AllGatherSimulator(deepcopy(X), replication_factor=num_ipus)
+    out_true, loss = sim()
+    # loss.sum().backward()  # sum losses across IPUs to generate gradients
+    loss.mean().backward()  # average losses across IPUs to generate gradients
+    grad_true = einops.rearrange(sim.X.grad, "r n d -> (r n) d")
+
     options = poptorch.Options()
     options.replicationFactor(num_ipus)
     options.outputMode(poptorch.OutputMode.All)
@@ -65,15 +85,13 @@ def test_all_gather() -> None:
     model = poptorch.trainingModel(model, options, optimizer)
     _apply_replica_grouping(model, CommGroupType.Orthogonal, 1)
 
-    Y, _ = model()
-    Y = einops.rearrange(Y, "(r s) n d -> r (s n) d", r=num_ipus, s=num_ipus)
-    Y = Y.detach().cpu()
+    out_actual, _ = model()
+    out_actual = out_actual.detach().cpu()
 
-    assert_close(Y[0], X, rtol=0, atol=0)
-    assert_close(Y[1], X, rtol=0, atol=0)
+    assert_close(out_actual, out_true, rtol=0, atol=0)
 
-    grad_X = model.getAnchoredTensor("grad_X")  # type: ignore
-    assert_close(grad_X, torch.ones_like(X), rtol=0, atol=0)
+    grad_actual = model.getAnchoredTensor("grad_X")  # type: ignore
+    assert_close(grad_actual, grad_true, rtol=0, atol=0)
 
 
 if __name__ == "__main__":

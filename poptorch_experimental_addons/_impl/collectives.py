@@ -7,6 +7,7 @@ import torch
 
 
 def _no_op_reshape(x: torch.Tensor) -> torch.Tensor:
+    "A no op that forces reshapes to be inserted into the gradient graph"
     return x.unsqueeze(-1).squeeze(-1)
 
 
@@ -20,7 +21,7 @@ def all_gather_cross_replica(x: torch.Tensor, replication_factor: int) -> Any:
     x -- shape (*)
     returns --  shape (replication_factor, *)
     """
-    x = _no_op_reshape(x)
+    x = _no_op_reshape(x)  # ensures grad of ReplicatedAllGather is reshaped
     out = poptorch.custom_op(
         [x],
         name="ReplicatedAllGather",
