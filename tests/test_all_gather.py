@@ -37,11 +37,11 @@ def _apply_replica_grouping(
     model: nn.Module, comm_group_type: CommGroupType, shards: int
 ) -> nn.Module:
     for n, _ in model.named_parameters():
-        model.per_replica_params[n] = (
+        model.per_replica_params[n] = (  # type: ignore
             comm_group_type,
             shards,
             VariableRetrievalMode.OnePerGroup,
-        )
+        )  # type: ignore
     return model
 
 
@@ -70,7 +70,7 @@ def test_all_gather() -> None:
     assert_close(Y[0], X, rtol=0, atol=0)
     assert_close(Y[1], X, rtol=0, atol=0)
 
-    grad_X = model.getAnchoredTensor("grad_X")
+    grad_X = model.getAnchoredTensor("grad_X")  # type: ignore
     assert_close(grad_X, torch.ones_like(X), rtol=0, atol=0)
 
 
