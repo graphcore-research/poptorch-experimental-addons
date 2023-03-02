@@ -1,16 +1,17 @@
 # Copyright (c) 2023 Graphcore Ltd. All rights reserved.
 
-"""Static sparse-dense matrix multiplication.
+"""Static sparse-dense matrix multiplication for inference.
 
 These APIs are based on a block COO format, created as:
 ```python
-T.sparse_coo_tensor(indices, values, size=(n_rows, n_cols))
+T.sparse_coo_tensor(indices, values, size=(n_row_blocks, n_col_blocks))
 #   indices -- shape (2, nnz_blocks) -- row and column block indices
 #   values -- shape (nnz_blocks, block_size, block_size)
 ```
 
-To transpose & convert to dense correctly, use the included functions
-`block_coo_transpose()` and `block_coo_to_dense()`.
+To transpose or convert to dense, use the included functions
+`block_coo_transpose()` and `block_coo_to_dense()`, in order to ensure
+the correct handling of blocks
 """
 
 from dataclasses import dataclass
