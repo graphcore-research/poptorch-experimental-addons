@@ -5,14 +5,15 @@ A collection of addons to [PopTorch](https://github.com/graphcore/poptorch), wit
 
 ## Usage
 
-Tested on Poplar SDK 3.1.0+1205, Ubuntu 20.04, Python 3.8.
+See [documentation](https://graphcore-research.github.io/poptorch-experimental-addons).
 
 ```bash
+# Tested on Poplar SDK 3.1.0+1205, Ubuntu 20.04, Python 3.8
 pip install git+https://github.com/graphcore-research/poptorch-experimental-addons
 
 # Run an example
 wget https://raw.githubusercontent.com/graphcore-research/poptorch-experimental-addons/main/examples/sparse_benchmark_spmm.py
-python3 sparse_benchmark_spmm.py
+python sparse_benchmark_spmm.py
 ```
 
 ```python
@@ -20,12 +21,11 @@ python3 sparse_benchmark_spmm.py
 import poptorch_experimental_addons as pea
 ```
 
-
-## Contents
+### Libraries
 
 | API | Description | Note |
 | --- | --- | --- |
-| `pea.sparse.block_coo_spmm` | Static sparse-dense matmul (forward pass only) | Includes modules for weight-sparse inference |
+| [`pea.sparse.block_coo_spmm`](https://graphcore-research.github.io/poptorch-experimental-addons/sparse.html#poptorch_experimental_addons.sparse.block_coo_spmm) | Static sparse-dense matmul (forward pass only) | Includes modules for weight-sparse inference |
 
 
 ## Development
