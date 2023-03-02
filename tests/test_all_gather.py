@@ -41,7 +41,7 @@ def _apply_replica_grouping(
             comm_group_type,
             shards,
             VariableRetrievalMode.OnePerGroup,
-        )  # type: ignore
+        )
     return model
 
 
