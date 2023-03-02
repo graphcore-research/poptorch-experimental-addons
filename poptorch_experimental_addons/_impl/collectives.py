@@ -4,11 +4,11 @@ import torch
 import poptorch
 
 
-def replicated_all_gather(x: torch.Tensor, replication_factor: int) -> torch.Tensor:
+def all_gather_cross_replica(x: torch.Tensor, replication_factor: int) -> torch.Tensor:
     """
-    All-gather across IPU replicas.
+    All-gather across IPU program replicas.
 
-    Gathers and concatenates tensors occupying the same memory location across IPUs,
+    Gathers and stacks tensors occupying the same memory location across IPUs,
     then replicates the result.
     """
     out = poptorch.custom_op(
@@ -24,4 +24,4 @@ def replicated_all_gather(x: torch.Tensor, replication_factor: int) -> torch.Ten
     return out
 
 
-__all__ = ["replicated_all_gather"]
+__all__ = ["all_gather_cross_replica"]

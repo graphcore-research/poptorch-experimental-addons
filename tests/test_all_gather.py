@@ -20,24 +20,18 @@ class _ReplicatedAllGather(torch.nn.Module):
         self.replication_factor = replication_factor
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return pea.collectives.replicated_all_gather(x, self.replication_factor)
+        return pea.collectives.all_gather_cross_replica(x, self.replication_factor)
 
 
 def test_all_gather():
     set_seed(112358)
-    x = torch.randn(32, 24)
+    x = torch.randn(4, 8)
     options = poptorch.Options()
-    num_ipus = 16
+    num_ipus = 2
     options.replicationFactor(num_ipus)
     model = _ReplicatedAllGather(num_ipus)
     model = poptorch.inferenceModel(model, options)
     y = model(x)
-    breakpoint()
-    y = einops.rearrange(y, "(k n) d -> k n d", k=num_ipus)
-    torch.testing.assert_allclose(y[0], x, rtol=0, atol=0)
-    torch.testing.assert_allclose(y[7], x, rtol=0, atol=0)
-    torch.testing.assert_allclose(y[-1], x, rtol=0, atol=0)
-
-
-if __name__ == "__main__":
-    test_all_gather()
+    y = einops.rearrange(y, "(r s) n d -> r (s n) d", r=num_ipus, s=num_ipus)
+    torch.testing.assert_close(y[0], x, rtol=0, atol=0)
+    torch.testing.assert_close(y[1], x, rtol=0, atol=0)
