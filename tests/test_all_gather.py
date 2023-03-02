@@ -1,15 +1,17 @@
 # Copyright (c) 2023 Graphcore Ltd. All rights reserved.
 
+import random
+from copy import deepcopy
+from typing import Any, Tuple
+
+import einops
+import numpy as np
+import poptorch
 import torch
 import torch.nn as nn
-import poptorch
 from poptorch.enums import CommGroupType, VariableRetrievalMode
+
 import poptorch_experimental_addons as pea
-import random
-import numpy as np
-import einops
-from copy import deepcopy
-from typing import Tuple, Any
 
 assert_close = torch.testing.assert_close  # type:ignore[attr-defined]
 

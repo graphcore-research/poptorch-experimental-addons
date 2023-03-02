@@ -1,8 +1,9 @@
 # Copyright (c) 2023 Graphcore Ltd. All rights reserved.
 
-import torch
-import poptorch
 from typing import Any
+
+import poptorch
+import torch
 
 
 def _no_op_reshape(x: torch.Tensor) -> torch.Tensor:

@@ -34,4 +34,4 @@ def _load_native_library() -> None:
 
 _load_native_library()
 
-from . import sparse, collectives  # NOQA:F401,E402
+from . import collectives, sparse  # NOQA:F401,E402
