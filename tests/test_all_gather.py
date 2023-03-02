@@ -9,7 +9,9 @@ import random
 import numpy as np
 import einops
 from copy import deepcopy
-from typing import Union
+from typing import Tuple, Any
+
+assert_close = torch.testing.assert_close  # type:ignore[attr-defined]
 
 
 def set_seed(seed: int) -> None:
@@ -26,7 +28,7 @@ class _AllGatherCrossReplicaTester(torch.nn.Module):
         )
         self.replication_factor = replication_factor
 
-    def forward(self) -> Union[torch.Tensor, torch.Tensor]:
+    def forward(self) -> Tuple[Any, Any]:
         out = pea.collectives.all_gather_cross_replica(self.X, self.replication_factor)
         return out, poptorch.identity_loss(out, reduction="sum")
 
@@ -43,7 +45,7 @@ def _apply_replica_grouping(
     return model
 
 
-def test_all_gather():
+def test_all_gather() -> None:
     set_seed(112358)
     num_ipus = 2
 
@@ -65,11 +67,11 @@ def test_all_gather():
     Y = einops.rearrange(Y, "(r s) n d -> r (s n) d", r=num_ipus, s=num_ipus)
     Y = Y.detach().cpu()
 
-    torch.testing.assert_close(Y[0], X, rtol=0, atol=0)
-    torch.testing.assert_close(Y[1], X, rtol=0, atol=0)
+    assert_close(Y[0], X, rtol=0, atol=0)
+    assert_close(Y[1], X, rtol=0, atol=0)
 
     grad_X = model.getAnchoredTensor("grad_X")
-    torch.testing.assert_close(grad_X, torch.ones_like(X), rtol=0, atol=0)
+    assert_close(grad_X, torch.ones_like(X), rtol=0, atol=0)
 
 
 if __name__ == "__main__":

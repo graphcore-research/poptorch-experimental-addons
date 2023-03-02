@@ -2,13 +2,14 @@
 
 import torch
 import poptorch
+from typing import Any
 
 
 def _no_op_reshape(x: torch.Tensor) -> torch.Tensor:
     return x.unsqueeze(-1).squeeze(-1)
 
 
-def all_gather_cross_replica(x: torch.Tensor, replication_factor: int) -> torch.Tensor:
+def all_gather_cross_replica(x: torch.Tensor, replication_factor: int) -> Any:
     """
     All-gather across IPU program replicas.
 
