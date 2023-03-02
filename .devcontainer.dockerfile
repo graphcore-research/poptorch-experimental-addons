@@ -15,4 +15,5 @@ RUN groupadd --gid $USER_GID $USERNAME \
 USER $USERNAME
 
 ADD . /tmp/pea
-RUN pip install -r /tmp/pea/requirements-dev.txt
+RUN pip install -r /tmp/pea/requirements-dev.txt \
+    jupyterlab
