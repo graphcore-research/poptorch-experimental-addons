@@ -1,6 +1,7 @@
 # Copyright (c) 2023 Graphcore Ltd. All rights reserved.
 
-"""A collection of addons to [PopTorch](https://github.com/graphcore/poptorch),
+"""
+A collection of addons to [PopTorch](https://github.com/graphcore/poptorch),
 with general utility.
 
 ```python
