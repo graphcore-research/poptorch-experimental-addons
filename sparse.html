@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
 <title>poptorch_experimental_addons.sparse API documentation</title>
-<meta name="description" content="Static sparse-dense matrix multiplication …" />
+<meta name="description" content="Static sparse-dense matrix multiplication for inference …" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -22,14 +22,15 @@
 <h1 class="title">Module <code>poptorch_experimental_addons.sparse</code></h1>
 </header>
 <section id="section-intro">
-<p>Static sparse-dense matrix multiplication.</p>
+<p>Static sparse-dense matrix multiplication for inference.</p>
 <p>These APIs are based on a block COO format, created as:</p>
-<pre><code class="language-python">T.sparse_coo_tensor(indices, values, size=(n_rows, n_cols))
+<pre><code class="language-python">T.sparse_coo_tensor(indices, values, size=(n_row_blocks, n_col_blocks))
 #   indices -- shape (2, nnz_blocks) -- row and column block indices
 #   values -- shape (nnz_blocks, block_size, block_size)
 </code></pre>
-<p>To transpose &amp; convert to dense correctly, use the included functions
-<code><a title="poptorch_experimental_addons.sparse.block_coo_transpose" href="#poptorch_experimental_addons.sparse.block_coo_transpose">block_coo_transpose()</a></code> and <code><a title="poptorch_experimental_addons.sparse.block_coo_to_dense" href="#poptorch_experimental_addons.sparse.block_coo_to_dense">block_coo_to_dense()</a></code>.</p>
+<p>To transpose or convert to dense, use the included functions
+<code><a title="poptorch_experimental_addons.sparse.block_coo_transpose" href="#poptorch_experimental_addons.sparse.block_coo_transpose">block_coo_transpose()</a></code> and <code><a title="poptorch_experimental_addons.sparse.block_coo_to_dense" href="#poptorch_experimental_addons.sparse.block_coo_to_dense">block_coo_to_dense()</a></code>, in order to ensure
+the correct handling of blocks</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
