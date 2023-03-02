@@ -9,6 +9,7 @@ import random
 import numpy as np
 import einops
 from copy import deepcopy
+from typing import Union
 
 
 def set_seed(seed: int) -> None:
@@ -18,19 +19,21 @@ def set_seed(seed: int) -> None:
 
 
 class _AllGatherCrossReplicaTester(torch.nn.Module):
-    def __init__(self, X, replication_factor):
+    def __init__(self, X: torch.Tensor, replication_factor: int):
         super().__init__()
         self.X = nn.Parameter(
             einops.rearrange(X, "(r n) d -> r n d", r=replication_factor).contiguous()
         )
         self.replication_factor = replication_factor
 
-    def forward(self):
+    def forward(self) -> Union[torch.Tensor, torch.Tensor]:
         out = pea.collectives.all_gather_cross_replica(self.X, self.replication_factor)
         return out, poptorch.identity_loss(out, reduction="sum")
 
 
-def _apply_replica_grouping(model, comm_group_type, shards):
+def _apply_replica_grouping(
+    model: nn.Module, comm_group_type: CommGroupType, shards: int
+) -> nn.Module:
     for n, _ in model.named_parameters():
         model.per_replica_params[n] = (
             comm_group_type,
