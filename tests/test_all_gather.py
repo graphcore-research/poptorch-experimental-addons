@@ -31,7 +31,9 @@ class _AllGatherCrossReplicaTester(torch.nn.Module):
         self.replication_factor = replication_factor
 
     def forward(self) -> Tuple[Any, Any]:
-        out = pea.collectives.all_gather_cross_replica(self.X, self.replication_factor)
+        out = pea.collectives.all_gather_cross_replica_mean_grad(
+            self.X, self.replication_factor
+        )
         return out, poptorch.identity_loss(out, reduction="sum")
 
 
@@ -92,7 +94,3 @@ def test_all_gather() -> None:
 
     grad_actual = model.getAnchoredTensor("grad_X")  # type: ignore
     assert_close(grad_actual, grad_true, rtol=0, atol=0)
-
-
-if __name__ == "__main__":
-    test_all_gather()

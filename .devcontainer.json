@@ -1,0 +1,13 @@
+{
+	"build": {
+		"dockerfile": ".devcontainer.dockerfile"
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-vscode.cpptools",
+				"ms-python.python"
+			]
+		}
+	}
+}
