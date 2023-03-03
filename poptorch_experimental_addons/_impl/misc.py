@@ -10,10 +10,12 @@ from torch import Tensor
 
 def custom_grad(fwd: Tensor, bwd: Tensor) -> Tensor:
     """
-    Return one tensor in the forward pass, using a separate tensor for the backward pass.
+    Return one tensor in the forward pass, using a separate tensor for the
+    backward pass.
 
-    Typically, used `y = custom_grad(f(x), g(x))`, in which case the forward pass uses `f`,
-    such that `y = f(x)`, and the backward pass uses `g`, such that `dy/dx = dg/dx`.
+    Typically, used `y = custom_grad(f(x), g(x))`, in which case the forward pass
+    uses `f`, such that `y = f(x)`, and the backward pass uses `g`, such that
+    `dy/dx = dg/dx`.
 
     For example, a straight-through estimator for `round`:
     ```python
@@ -27,6 +29,7 @@ def custom_grad(fwd: Tensor, bwd: Tensor) -> Tensor:
             f"custom_grad expects both arguments to have the same shape"
             f", actual: fwd.shape: {fwd.shape}, bwd.shape: {bwd.shape}"
         )
+    y: Tensor
     (y,) = poptorch.custom_op(
         [fwd, bwd],
         name="CustomGradient",

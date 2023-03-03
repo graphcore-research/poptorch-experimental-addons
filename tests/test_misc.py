@@ -15,14 +15,15 @@ def run_forward_and_backward(
     fn: Callable[..., Tensor], args: Dict[str, Tensor], patterns: Dict[str, bool]
 ) -> Dict[str, Tensor]:
     class TestModule(nn.Module):
-        def __init__(self):
+        def __init__(self) -> None:
             super().__init__()
             for k, v in args.items():
                 self.register_parameter(k, nn.Parameter(v.clone()))
 
         def forward(self) -> Tensor:
             output = fn(**{k: getattr(self, k) for k in args})
-            return poptorch.identity_loss(output, reduction="sum")
+            loss: Tensor = poptorch.identity_loss(output, reduction="sum")
+            return loss
 
     module = TestModule()
     options = poptorch.Options()
