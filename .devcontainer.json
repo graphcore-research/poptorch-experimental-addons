@@ -6,8 +6,7 @@
 		"vscode": {
 			"extensions": [
 				"ms-vscode.cpptools",
-				"ms-python.python",
-				"ms-python.isort"
+				"ms-python.python"
 			]
 		}
 	}
