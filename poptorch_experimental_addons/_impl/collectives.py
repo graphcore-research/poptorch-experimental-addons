@@ -35,7 +35,7 @@ def all_gather_cross_replica_mean_grad(x: torch.Tensor, replication_factor: int)
     return out
 
 
-def all_reduce_cross_replica(
+def all_reduce_cross_replica_sum(
     x: torch.Tensor, replication_factor: int, insert_in_grad_graph: bool = False
 ) -> Any:
     """
@@ -63,4 +63,4 @@ def all_reduce_cross_replica(
     return out
 
 
-__all__ = ["all_gather_cross_replica_mean_grad", "all_reduce_cross_replica"]
+__all__ = ["all_gather_cross_replica_mean_grad", "all_reduce_cross_replica_sum"]

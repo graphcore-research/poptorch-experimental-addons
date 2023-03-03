@@ -26,7 +26,8 @@ import poptorch_experimental_addons as pea
 | API | Description | Note |
 | --- | --- | --- |
 | [`pea.sparse.block_coo_spmm`](https://graphcore-research.github.io/poptorch-experimental-addons/sparse.html#poptorch_experimental_addons.sparse.block_coo_spmm) | Static sparse-dense matmul (forward pass only) | Includes modules for weight-sparse inference |
-| `pea.collectives.replicated_all_gather` | All gather op across IPU program replicas |  
+| `pea.collectives.all_gather_cross_replica_mean_grad` | All gather op across IPU program replicas | Averages gradients across replicas |
+| `pea.collectives.all_reduce_cross_replica_sum` | All reduce-sum op across IPU program replicas | |
 
 
 ## Development

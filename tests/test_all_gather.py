@@ -9,9 +9,11 @@ import numpy as np
 import poptorch
 import torch
 import torch.nn as nn
-from poptorch.enums import CommGroupType, VariableRetrievalMode
+from poptorch.enums import CommGroupType
 
 import poptorch_experimental_addons as pea
+
+from utils import _apply_replica_grouping
 
 assert_close = torch.testing.assert_close  # type:ignore[attr-defined]
 
@@ -34,7 +36,7 @@ class _AllGatherCrossReplicaTester(torch.nn.Module):
         out = pea.collectives.all_gather_cross_replica_mean_grad(
             self.X, self.replication_factor
         )
-        return out, poptorch.identity_loss(out, reduction="sum")
+        return out, poptorch.identity_loss(out.pow(2), reduction="sum")
 
 
 class _AllGatherSimulator(torch.nn.Module):
@@ -47,20 +49,8 @@ class _AllGatherSimulator(torch.nn.Module):
 
     def forward(self) -> Tuple[Any, Any]:
         out = torch.stack([self.X for _ in range(self.replication_factor)])
-        loss = out.sum(dim=list(range(out.ndim))[1:])
+        loss = out.pow(2).sum(dim=list(range(out.ndim))[1:])
         return torch.vstack([*out]), loss
-
-
-def _apply_replica_grouping(
-    model: nn.Module, comm_group_type: CommGroupType, shards: int
-) -> nn.Module:
-    for n, _ in model.named_parameters():
-        model.per_replica_params[n] = (  # type: ignore
-            comm_group_type,
-            shards,
-            VariableRetrievalMode.OnePerGroup,
-        )
-    return model
 
 
 def test_all_gather() -> None:
