@@ -35,7 +35,9 @@ def all_gather_cross_replica(x: torch.Tensor, replication_factor: int) -> Any:
     return out
 
 
-def all_reduce_cross_replica(x: torch.Tensor, replication_factor: int) -> Any:
+def all_reduce_cross_replica(
+    x: torch.Tensor, replication_factor: int, insert_in_grad_graph: bool = False
+) -> Any:
     """
     All-reduce across IPU program replicas
 
@@ -45,12 +47,18 @@ def all_reduce_cross_replica(x: torch.Tensor, replication_factor: int) -> Any:
     x -- shape (*)
     returns -- shape (*)
     """
+    rg_info = [replication_factor, 1, replication_factor]
     out = poptorch.custom_op(
         [x],
         name="ReplicatedAllReduceTP",
         domain="ai.graphcore",
         domain_version=1,
         example_outputs=[x],
+        attributes={
+            "op": "sum",
+            "__collectiveReplicaGrouping": rg_info,
+            "backwards": insert_in_grad_graph,
+        },
     )[0]
     return out
 
