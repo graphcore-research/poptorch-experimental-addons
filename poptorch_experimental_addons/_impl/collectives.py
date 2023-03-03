@@ -55,4 +55,4 @@ def all_reduce_cross_replica(x: torch.Tensor, replication_factor: int) -> Any:
     return out
 
 
-__all__ = ["all_gather_cross_replica"]
+__all__ = ["all_gather_cross_replica", "all_reduce_cross_replica"]

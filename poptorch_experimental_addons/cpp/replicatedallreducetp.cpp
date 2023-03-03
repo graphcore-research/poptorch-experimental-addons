@@ -10,6 +10,10 @@ For the op to work you need to run the `OpToIdentityPattern` after autodiffing t
 #include <memory>
 #include <snap/Tensor.hpp>
 #include <vector>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <popart/alias/aliasmodel.hpp>
 #include <popart/basicoptionals.hpp>
 #include <popart/error.hpp>
@@ -25,10 +29,11 @@ For the op to work you need to run the `OpToIdentityPattern` after autodiffing t
 #include <popart/region.hpp>
 #include <popart/tensor.hpp>
 #include <popart/util.hpp>
-
 #include <popart/op/collectives/collectives.hpp>
 #include <popart/op/collectives/replicatedallreduce.hpp>
 #include <popart/popx/op/collectives/replicatedallreducex.hpp>
+#pragma GCC diagnostic pop
+
 
 #include <poplar/Graph.hpp>
 #include <poputil/exceptions.hpp>
