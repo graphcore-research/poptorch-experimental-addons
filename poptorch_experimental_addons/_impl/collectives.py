@@ -11,12 +11,15 @@ def _no_op_reshape(x: torch.Tensor) -> torch.Tensor:
     return x.unsqueeze(-1).squeeze(-1)
 
 
-def all_gather_cross_replica_mean_grad(x: torch.Tensor, replication_factor: int) -> Any:
+def all_gather_cross_replica_identical_grads_in(
+    x: torch.Tensor, replication_factor: int
+) -> Any:
     """
     All-gather across IPU program replicas.
 
-    Gathers and stacks tensors occupying the same memory location across IPUs,
-    then replicates the result.
+    Gathers and stacks tensors occupying the same memory location across all IPUs
+
+    Gradient graph generated assumes gradient inputs are identical
 
     x -- shape (*)
     returns --  shape (replication_factor, *)
@@ -33,6 +36,20 @@ def all_gather_cross_replica_mean_grad(x: torch.Tensor, replication_factor: int)
     )[0]
     out = out.reshape(replication_factor, *x.shape)
     return out
+
+
+def all_gather_cross_replica(x: torch.Tensor, replication_factor: int):
+    """
+    All-gather across IPU program replicas.
+
+    Gathers and stacks tensors occupying the same memory location across all IPUs
+
+    x -- shape (*)
+    returns --  shape (replication_factor, *)
+    """
+    x = all_gather_cross_replica_identical_grads_in(x, replication_factor)
+    x = all_reduce_cross_replica_sum(x, replication_factor, True)
+    return x
 
 
 def all_reduce_cross_replica_sum(
@@ -63,4 +80,8 @@ def all_reduce_cross_replica_sum(
     return out
 
 
-__all__ = ["all_gather_cross_replica_mean_grad", "all_reduce_cross_replica_sum"]
+__all__ = [
+    "all_gather_cross_replica_identical_grads_in",
+    "all_gather_cross_replica",
+    "all_reduce_cross_replica_sum",
+]

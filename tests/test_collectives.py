@@ -14,7 +14,7 @@ from poptorch.enums import CommGroupType
 
 import poptorch_experimental_addons as pea
 
-from .utils import _apply_replica_grouping
+import utils
 
 assert_close = torch.testing.assert_close  # type:ignore[attr-defined]
 
@@ -71,7 +71,7 @@ def _all_reduce_simulator_op(X: torch.Tensor, replication_factor: int) -> torch.
 
 
 _op_mapping = {
-    pea.collectives.all_gather_cross_replica_mean_grad: _all_gather_simulator_op,
+    pea.collectives.all_gather_cross_replica: _all_gather_simulator_op,
     pea.collectives.all_reduce_cross_replica_sum: _all_reduce_simulator_op,
 }
 
@@ -89,7 +89,7 @@ def simulate_collective(
     out, loss = sim()
     loss.mean().backward()
     grad = einops.rearrange(sim.X.grad, "r n d -> (r n) d")
-    return out, grad
+    return out, grad * num_ipus
 
 
 def run_collective(X: torch.Tensor, op: Callable, num_ipus: int) -> Tuple[Any, Any]:
@@ -105,7 +105,7 @@ def run_collective(X: torch.Tensor, op: Callable, num_ipus: int) -> Tuple[Any, A
     )
     optimizer = poptorch.optim.SGD(col.parameters(), lr=1.0)
     col = poptorch.trainingModel(col, options, optimizer)
-    _apply_replica_grouping(col, CommGroupType.Orthogonal, 1)
+    utils._apply_replica_grouping(col, CommGroupType.Orthogonal, 1)
     out, _ = col()
     out = out.detach().cpu()
     grad = col.getAnchoredTensor("grad_X")  # type: ignore
@@ -119,3 +119,7 @@ def test_collective(op: Callable) -> None:
     actual = run_collective(X, op, num_ipus)
     expected = simulate_collective(X, _op_mapping[op], num_ipus)
     map(assert_close, actual, expected)
+
+
+if __name__ == "__main__":
+    test_collective(pea.collectives.all_gather_cross_replica)
