@@ -22,27 +22,27 @@ ReplicatedAllToAllOpx::ReplicatedAllToAllOpx(Op *op, Devicex *devicex)
   verifyOp<ReplicatedAllToAllOp>(op, {"ai.graphcore", "ReplicatedAllToAll", 1});
 }
 
-void ReplicatedAllToAllOpx::grow(snap::program::Sequence &prog) const {
+void ReplicatedAllToAllOpx::grow(poplar::program::Sequence &prog) const {
   auto &op = getOp<ReplicatedAllToAllOp>();
 
   const poplar::OptionFlags &allToAllOptions = dv_p->lowering().gclOptions;
 
   poplar::Tensor output = gcl::allToAllCrossReplica(
-    graph().getPoplarGraph(),
-    getInTensor(ReplicatedAllToAllOp::getInIndex()).getPoplarTensor(),
-    prog.getPoplarSequence(),
+    graph(),
+    getInTensor(ReplicatedAllToAllOp::getInIndex()),
+    prog,
     toGclCommGroup(op.getReplicaGrouping()), debugContext("replicatedAllToAll"),
     allToAllOptions);
 
-  setOutTensor(ReplicatedAllToAllOp::getOutIndex(), snap::Tensor{output, graph()});
+  setOutTensor(ReplicatedAllToAllOp::getOutIndex(), output);
 }
 
 InputCreatorType
-ReplicatedAllToAllOpx::getInputCreatorType(InIndex index) const {
+ReplicatedAllToAllOpx::getInputCreatorType(InIndex) const {
   return InputCreatorType::CanUnwind;
 }
 
-snap::Tensor ReplicatedAllToAllOpx::unwindTensorLayout(snap::Tensor tensor,
+poplar::Tensor ReplicatedAllToAllOpx::unwindTensorLayout(poplar::Tensor tensor,
                                                        InIndex,
                                                        OutIndex) const {
   return tensor;
