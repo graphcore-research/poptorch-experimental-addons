@@ -14,7 +14,7 @@ from poptorch.enums import CommGroupType
 
 import poptorch_experimental_addons as pea
 
-import utils
+from . import utils
 
 assert_close = torch.testing.assert_close  # type:ignore[attr-defined]
 
@@ -118,7 +118,7 @@ def test_collective(op: Callable) -> None:
     num_ipus = 2
     actual = run_collective(X, op, num_ipus)
     expected = simulate_collective(X, _op_mapping[op], num_ipus)
-    map(assert_close, actual, expected)
+    list(map(assert_close, actual, expected))
 
 
 if __name__ == "__main__":

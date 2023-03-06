@@ -1,22 +1,19 @@
 # Copyright (c) 2023 Graphcore Ltd. All rights reserved.
 
-import random
 from copy import deepcopy
-from typing import Any, Callable, Tuple
 from enum import Enum
 from functools import partial
+from typing import Any, Callable, Tuple
 
 import einops
-import numpy as np
 import poptorch
 import pytest
 import torch
 import torch.nn as nn
+from . import utils
 from poptorch.enums import CommGroupType
 
 import poptorch_experimental_addons as pea
-
-import utils
 
 assert_close = torch.testing.assert_close  # type:ignore[attr-defined]
 
@@ -56,37 +53,50 @@ def _colrowrep_simulator(
 ) -> torch.Tensor:
     out = einops.einsum(X, Y, "r n d, r d m -> r n m")
     out = einops.reduce(out, "r n m -> n m", "sum")
+    out = einops.repeat(out, "n m -> r n m", r=replication_factor)
     return out
 
 
 def _repcolcol_simulator(
     X: torch.Tensor, Y: torch.Tensor, replication_factor: int
 ) -> torch.Tensor:
-    out = einops.einsum(X, Y, "n d, r d m - > r n m")
+    out = einops.einsum(X, Y, "n d, r d m -> r n m")
     return out
 
 
 _sharding_transform_map = {
-    Sharding.Replicated: lambda x: x,
-    Sharding.Row: partial(einops.rearrange, pattern="(r n) d -> r n d"),
-    Sharding.Column: partial(einops.rearrange(pattern="d (m r) -> r d m")),
+    Sharding.Replicated: {
+        "in": lambda x, r: x,
+        "out_sim": lambda x: x,
+        "out_test": lambda x, r: x,
+    },
+    Sharding.Row: {
+        "in": partial(einops.rearrange, pattern="(r n) d -> r n d"),
+        "out_sim": partial(einops.rearrange, pattern="r n d -> (r n) d"),
+        "out_test": lambda x, r: x,
+    },
+    Sharding.Column: {
+        "in": partial(einops.rearrange, pattern="d (m r) -> r d m"),
+        "out_sim": partial(einops.rearrange, pattern="r d m -> d (m r)"),
+        "out_test": partial(einops.rearrange, pattern="(r d) m -> d (m r)"),
+    },
 }
 
 
 _op_mapping = {
     pea.sharded.rowcolrow_sharded_matmul: {
-        "sharding": (Sharding.Row, Sharding.Column),
+        "sharding": (Sharding.Row, Sharding.Column, Sharding.Row),
         "simulator": _rowcolrow_simulator,
         "kwargs": {"num_chunks": 2},
     },
     pea.sharded.repcolcol_sharded_matmul: {
-        "sharding": (Sharding.Replicated, Sharding.Column),
-        "simulator": _colrowrep_simulator,
+        "sharding": (Sharding.Replicated, Sharding.Column, Sharding.Column),
+        "simulator": _repcolcol_simulator,
         "kwargs": {},
     },
     pea.sharded.colrowrep_sharded_matmul: {
-        "sharding": (Sharding.Column, Sharding.Row),
-        "simulator": _repcolcol_simulator,
+        "sharding": (Sharding.Column, Sharding.Row, Sharding.Replicated),
+        "simulator": _colrowrep_simulator,
         "kwargs": {},
     },
 }
@@ -101,13 +111,15 @@ class _ShardedMatmulTester(torch.nn.Module):
         sharded_op: Callable,
     ):
         super().__init__()
-        X_sharding, Y_sharding = _op_mapping[sharded_op]["sharding"]
+        self.X_sharding, self.Y_sharding, self.out_sharding = _op_mapping[sharded_op][
+            "sharding"
+        ]
 
-        X_trf = _sharding_transform_map[X_sharding]
+        X_trf = _sharding_transform_map[self.X_sharding]["in"]
         self.X = nn.Parameter(X_trf(X, r=replication_factor).contiguous())
 
-        Y_trf = _sharding_transform_map[Y_sharding]
-        self.X = nn.Parameter(Y_trf(Y, r=replication_factor).contiguous())
+        Y_trf = _sharding_transform_map[self.Y_sharding]["in"]
+        self.Y = nn.Parameter(Y_trf(Y, r=replication_factor).contiguous())
         self.replication_factor = replication_factor
         self.op_kwargs = _op_mapping[sharded_op]["kwargs"]
         self.sharded_op = sharded_op
@@ -126,17 +138,19 @@ class _ShardedMatmulSimulator(torch.nn.Module):
         sharded_op: Callable,
     ):
         super().__init__()
-        X_sharding, Y_sharding = _op_mapping[sharded_op]["sharding"]
+        self.X_sharding, self.Y_sharding, self.out_sharding = _op_mapping[sharded_op][
+            "sharding"
+        ]
         simulator_op = _op_mapping[sharded_op]["simulator"]
 
-        X_trf = _sharding_transform_map[X_sharding]
+        X_trf = _sharding_transform_map[self.X_sharding]["in"]
         self.X = nn.Parameter(X_trf(X, r=replication_factor).contiguous())
 
-        Y_trf = _sharding_transform_map[Y_sharding]
-        self.X = nn.Parameter(Y_trf(Y, r=replication_factor).contiguous())
+        Y_trf = _sharding_transform_map[self.Y_sharding]["in"]
+        self.Y = nn.Parameter(Y_trf(Y, r=replication_factor).contiguous())
         self.replication_factor = replication_factor
         self.op_kwargs = _op_mapping[sharded_op]["kwargs"]
-        self.simulator = simulator_op
+        self.simulator_op = simulator_op
 
     def forward(self) -> Tuple[Any, Any]:
         out = self.simulator_op(
@@ -160,13 +174,17 @@ def simulate_sharded_matmul(
         deepcopy(X),
         deepcopy(Y),
         replication_factor=num_ipus,
-        num_chunks=2,
-        matmul_op=op,
+        sharded_op=op,
     )
     out, loss = simulator()
     loss.mean().backward()
-    grad_X = einops.rearrange(simulator.X.grad, "r n d -> (r n) d")
-    grad_Y = einops.rearrange(simulator.Y.grad, "r d m -> d (m r)")
+    grad_X = _sharding_transform_map[simulator.X_sharding]["out_sim"](simulator.X.grad)
+    grad_Y = _sharding_transform_map[simulator.Y_sharding]["out_sim"](simulator.Y.grad)
+    if simulator.X_sharding == Sharding.Replicated:
+        grad_X = einops.repeat(grad_X, "n d -> (r n) d", r=num_ipus)
+    if simulator.out_sharding != Sharding.Replicated:
+        grad_X *= num_ipus
+        grad_Y *= num_ipus
     return out, grad_X, grad_Y
 
 
@@ -185,12 +203,16 @@ def run_sharded_matmul(
     )
     optimizer = poptorch.optim.SGD(tester.parameters(), lr=0.0)
     tester = poptorch.trainingModel(tester, options, optimizer)
-    utils._apply_replica_grouping(tester, CommGroupType.Orthogonal, 1)
+    replicated_params = ["X"] if tester.X_sharding == Sharding.Replicated else []
+    utils._apply_replica_grouping(
+        tester, CommGroupType.Orthogonal, 1, excluded_parameters=replicated_params
+    )
     out, _ = tester()
     out = out.detach().cpu()
     grad_X = tester.getAnchoredTensor("grad_X")  # type: ignore
+    grad_X = _sharding_transform_map[tester.X_sharding]["out_test"](grad_X, r=num_ipus)
     grad_Y = tester.getAnchoredTensor("grad_Y")  # type: ignore
-    grad_Y = einops.rearrange(grad_Y, "(r d) m -> d (m r)", r=num_ipus)
+    grad_Y = _sharding_transform_map[tester.Y_sharding]["out_test"](grad_Y, r=num_ipus)
     return out, grad_X, grad_Y
 
 
@@ -200,8 +222,8 @@ def test_sharded_matmul(op: Callable) -> None:
     num_ipus = 2
     actual = run_sharded_matmul(X, Y, op, num_ipus)
     expected = simulate_sharded_matmul(X, Y, op, num_ipus)
-    map(assert_close, actual, expected)
+    list(map(assert_close, actual, expected))
 
 
 if __name__ == "__main__":
-    test_sharded_matmul()
+    test_sharded_matmul(pea.sharded.colrowrep_sharded_matmul)
