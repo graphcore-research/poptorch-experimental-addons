@@ -1,7 +1,7 @@
 # Copyright (c) 2023 Graphcore Ltd. All rights reserved.
 
 """
-Small standalone utilities that don't belong in larger groups.
+Top-level utilities.
 """
 
 from typing import Any, Tuple
@@ -13,7 +13,9 @@ from torch import Tensor
 
 class _CustomGrad(torch.autograd.Function):
     @staticmethod
-    def forward(ctx: Any, fwd: Tensor, bwd: Tensor) -> Tensor:  # type:ignore[override]
+    def forward(  # type:ignore[override]
+        ctx: Any, fwd: Tensor, fwd_surrogate: Tensor
+    ) -> Tensor:
         return fwd
 
     @staticmethod
@@ -23,7 +25,7 @@ class _CustomGrad(torch.autograd.Function):
         return None, grad
 
 
-def custom_grad(fwd: Tensor, bwd: Tensor) -> Tensor:
+def custom_grad(fwd: Tensor, fwd_surrogate: Tensor) -> Tensor:
     """
     Return one tensor in the forward pass, using a separate tensor for the
     backward pass.
@@ -39,31 +41,23 @@ def custom_grad(fwd: Tensor, bwd: Tensor) -> Tensor:
 
     Note that `fwd`, `bwd` and the output all have the same shape.
     """
-    if fwd.shape != bwd.shape:
+    if fwd.shape != fwd_surrogate.shape:
         raise ValueError(
-            f"custom_grad expects both arguments to have the same shape"
-            f", actual: fwd.shape: {fwd.shape}, bwd.shape: {bwd.shape}"
+            f"custom_grad expects both arguments to have the same shape, actual:"
+            f"fwd.shape: {fwd.shape}, fwd_surrogate.shape: {fwd_surrogate.shape}"
         )
     y: Tensor
     if poptorch.isRunningOnIpu():
         (y,) = poptorch.custom_op(
-            [fwd, bwd],
+            [fwd, fwd_surrogate],
             name="CustomGradient",
             domain="ai.graphcore.pea",
             domain_version=1,
             example_outputs=[fwd],
         )
     else:
-        y = _CustomGrad.apply(fwd, bwd)
+        y = _CustomGrad.apply(fwd, fwd_surrogate)
     return y
 
 
-def scaling(x: Tensor, fwd_scale: float, bwd_scale: float) -> Tensor:
-    """
-    Scale `x` by `fwd_scale` in the forward pass, and the gradient by `bwd_scale`
-    in the backward pass.
-    """
-    return custom_grad(x * fwd_scale, x * bwd_scale)
-
-
-__all__ = ["custom_grad", "scaling"]
+__all__ = ["custom_grad"]

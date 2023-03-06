@@ -52,7 +52,7 @@ def run_forward_and_backward(
 @pytest.mark.parametrize("device", ["cpu", "ipu"])
 def test_custom_grad(device: str) -> None:
     outputs = run_forward_and_backward(
-        lambda x: pea.misc.custom_grad(torch.round(x), 3 * x),
+        lambda x: pea.custom_grad(torch.round(x), 3 * x),
         dict(x=torch.tensor(5.7)),
         patterns=dict(CustomGradientOpPatten=True),
         device=device,
