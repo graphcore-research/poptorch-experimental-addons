@@ -4,8 +4,23 @@
 Small standalone utilities that don't belong in larger groups.
 """
 
+from typing import Any, Tuple
+
 import poptorch
+import torch
 from torch import Tensor
+
+
+class _CustomGrad(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx: Any, fwd: Tensor, bwd: Tensor) -> Tensor:  # type:ignore[override]
+        return fwd
+
+    @staticmethod
+    def backward(  # type:ignore[override]
+        ctx: Any, grad: Tensor
+    ) -> Tuple[None, Tensor]:
+        return None, grad
 
 
 def custom_grad(fwd: Tensor, bwd: Tensor) -> Tensor:
@@ -30,13 +45,16 @@ def custom_grad(fwd: Tensor, bwd: Tensor) -> Tensor:
             f", actual: fwd.shape: {fwd.shape}, bwd.shape: {bwd.shape}"
         )
     y: Tensor
-    (y,) = poptorch.custom_op(
-        [fwd, bwd],
-        name="CustomGradient",
-        domain="ai.graphcore.pea",
-        domain_version=1,
-        example_outputs=[fwd],
-    )
+    if poptorch.isRunningOnIpu():
+        (y,) = poptorch.custom_op(
+            [fwd, bwd],
+            name="CustomGradient",
+            domain="ai.graphcore.pea",
+            domain_version=1,
+            example_outputs=[fwd],
+        )
+    else:
+        y = _CustomGrad.apply(fwd, bwd)
     return y
 
 

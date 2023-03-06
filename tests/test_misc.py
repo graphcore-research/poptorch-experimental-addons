@@ -3,6 +3,7 @@
 from typing import Callable, Dict
 
 import poptorch
+import pytest
 import torch
 from torch import Tensor, nn
 
@@ -12,7 +13,10 @@ assert_close = torch.testing.assert_close  # type:ignore[attr-defined]
 
 
 def run_forward_and_backward(
-    fn: Callable[..., Tensor], args: Dict[str, Tensor], patterns: Dict[str, bool]
+    fn: Callable[..., Tensor],
+    args: Dict[str, Tensor],
+    patterns: Dict[str, bool],
+    device: str,
 ) -> Dict[str, Tensor]:
     class TestModule(nn.Module):
         def __init__(self) -> None:
@@ -26,24 +30,32 @@ def run_forward_and_backward(
             return loss
 
     module = TestModule()
-    options = poptorch.Options()
-    options.useIpuModel(True)
-    options._popart.setPatterns(patterns)
-    step = poptorch.trainingModel(
-        module, options, torch.optim.SGD(module.parameters(), 1.0)
-    )
-    output = step()
+    optimiser = torch.optim.SGD(module.parameters(), 1.0)
+    if device == "ipu":
+        options = poptorch.Options()
+        options.useIpuModel(True)
+        options._popart.setPatterns(patterns)
+        step = poptorch.trainingModel(module, options, optimiser)
+        output = step()
+        step.copyWeightsToHost()
+    else:
+        optimiser.zero_grad()
+        output = module()
+        output.backward()
+        optimiser.step()
     return dict(
         output=output,
         **{f"grad_{k}": args[k] - getattr(module, k).detach() for k in args},
     )
 
 
-def test_custom_grad() -> None:
+@pytest.mark.parametrize("device", ["cpu", "ipu"])
+def test_custom_grad(device: str) -> None:
     outputs = run_forward_and_backward(
-        lambda x: pea.misc.custom_grad(torch.round(x), x),
+        lambda x: pea.misc.custom_grad(torch.round(x), 3 * x),
         dict(x=torch.tensor(5.7)),
         patterns=dict(CustomGradientOpPatten=True),
+        device=device,
     )
     assert_close(outputs["output"], torch.tensor(6.0))
-    assert_close(outputs["grad_x"], torch.tensor(1.0))
+    assert_close(outputs["grad_x"], torch.tensor(3.0))
