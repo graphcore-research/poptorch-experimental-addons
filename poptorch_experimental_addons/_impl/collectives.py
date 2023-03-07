@@ -1,5 +1,9 @@
 # Copyright (c) 2023 Graphcore Ltd. All rights reserved.
 
+"""
+Primitives for collective communication across IPU clusters.
+"""
+
 from typing import Any
 
 import poptorch

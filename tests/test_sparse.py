@@ -6,19 +6,20 @@ from typing import Any, Callable, Tuple
 import numpy as np
 import poptorch
 import pytest
-import torch as T
+import torch
+from torch import Tensor
 
 import poptorch_experimental_addons as pea
 
-assert_close = T.testing.assert_close  # type:ignore[attr-defined]
+assert_close = torch.testing.assert_close  # type:ignore[attr-defined]
 
 
 @dataclass
 class Problem:
-    sparse: T.Tensor
-    dense: T.Tensor
+    sparse: Tensor
+    dense: Tensor
     mode: str
-    expected_output: T.Tensor
+    expected_output: Tensor
 
     @classmethod
     def generate_sparse_dense(
@@ -28,17 +29,17 @@ class Problem:
         in_blocks: int,
         batch_size: int,
         density: float,
-        dtype: T.dtype,
+        dtype: torch.dtype,
     ) -> "Problem":
         nnz_blocks = int(density * in_blocks * out_blocks)
-        lhs = T.sparse_coo_tensor(
-            indices=T.tensor(np.indices((out_blocks, in_blocks))).reshape(2, -1)[
-                :, T.randperm(out_blocks * in_blocks)[:nnz_blocks]
+        lhs = torch.sparse_coo_tensor(
+            indices=torch.tensor(np.indices((out_blocks, in_blocks))).reshape(2, -1)[
+                :, torch.randperm(out_blocks * in_blocks)[:nnz_blocks]
             ],
-            values=T.randn(size=(nnz_blocks, block_size, block_size), dtype=dtype),
+            values=torch.randn(size=(nnz_blocks, block_size, block_size), dtype=dtype),
             size=(out_blocks, in_blocks, block_size, block_size),
         ).coalesce()
-        rhs = T.randn((in_blocks * block_size, batch_size), dtype=dtype)
+        rhs = torch.randn((in_blocks * block_size, batch_size), dtype=dtype)
         output = pea.sparse.block_coo_to_dense(lhs).float() @ rhs.float()
         return cls(sparse=lhs, dense=rhs, mode="sparse_dense", expected_output=output)
 
@@ -65,21 +66,21 @@ class Problem:
     ],
 )
 def test_coo_methods(shape: Tuple[int], block_size: int, seed: int) -> None:
-    T.manual_seed(seed)
+    torch.manual_seed(seed)
     nnz_blocks = int(np.prod(shape)) // 2
-    array = T.sparse_coo_tensor(
-        indices=T.tensor(np.indices(shape).reshape(len(shape), -1))[
-            :, T.randperm(int(np.prod(shape)))[:nnz_blocks]
+    array = torch.sparse_coo_tensor(
+        indices=torch.tensor(np.indices(shape).reshape(len(shape), -1))[
+            :, torch.randperm(int(np.prod(shape)))[:nnz_blocks]
         ],
         values=1000
-        + T.arange(nnz_blocks * block_size ** len(shape)).reshape(
+        + torch.arange(nnz_blocks * block_size ** len(shape)).reshape(
             (-1,) + (block_size,) * len(shape)
         ),
         size=shape + (block_size,) * len(shape),
     )
     dense = pea.sparse.block_coo_to_dense(array)
     assert dense.shape == tuple(s * block_size for s in shape)
-    assert T.sum(dense != 0) == nnz_blocks * block_size ** len(shape)
+    assert torch.sum(dense != 0) == nnz_blocks * block_size ** len(shape)
 
     if len(shape) == 2:
         assert_close(
@@ -88,7 +89,7 @@ def test_coo_methods(shape: Tuple[int], block_size: int, seed: int) -> None:
         )
 
 
-class LambdaModule(T.nn.Module):
+class LambdaModule(torch.nn.Module):
     def __init__(self, fn: Callable[..., Any]):
         super().__init__()
         self.fn = fn
@@ -100,9 +101,9 @@ class LambdaModule(T.nn.Module):
 @pytest.mark.parametrize(
     "block_size,shape,batch_size,density,dtype,seed",
     [
-        (1, (3, 5), 7, 0.4, T.float, 1000),
-        (4, (12, 10), 8, 0.2, T.half, 2000),
-        (1, (128, 128), 1, 0.01, T.float, 3000),
+        (1, (3, 5), 7, 0.4, torch.float, 1000),
+        (4, (12, 10), 8, 0.2, torch.half, 2000),
+        (1, (128, 128), 1, 0.01, torch.float, 3000),
     ],
 )
 def test_block_coo_spmm(
@@ -110,10 +111,10 @@ def test_block_coo_spmm(
     shape: Tuple[int, int],
     batch_size: int,
     density: float,
-    dtype: T.dtype,
+    dtype: torch.dtype,
     seed: int,
 ) -> None:
-    T.manual_seed(seed)
+    torch.manual_seed(seed)
     base_problem = Problem.generate_sparse_dense(
         block_size=block_size,
         out_blocks=shape[0],
@@ -124,7 +125,7 @@ def test_block_coo_spmm(
     )
     for problem in [base_problem, base_problem.transpose()]:
         outputs = {}
-        if dtype != T.half:
+        if dtype != torch.half:
             outputs["gather_scatter"] = pea.sparse.block_coo_spmm_gs(
                 problem.sparse, problem.dense, problem.mode
             )
@@ -144,7 +145,7 @@ def test_block_coo_spmm(
                 output.float(),
                 problem.expected_output,
                 rtol=0,
-                atol={T.float: 1e-5, T.half: 1e-2}[dtype],
+                atol={torch.float: 1e-5, torch.half: 1e-2}[dtype],
                 msg=f"{name} (shape {output.shape}) vs dense"
                 f" (shape {problem.expected_output.shape})"
                 f", for {problem}",
@@ -152,20 +153,20 @@ def test_block_coo_spmm(
 
 
 def test_high_level_api() -> None:
-    T.manual_seed(4000)
+    torch.manual_seed(4000)
     block_size = 2
     out_size = 3 * block_size
     in_size = 5 * block_size
 
     sparse = pea.sparse.magnitude_prune(
-        T.randn(out_size, in_size),
+        torch.randn(out_size, in_size),
         block_size=block_size,
         density=0.75,
     )
-    dense_in = T.randn(7, in_size)
+    dense_in = torch.randn(7, in_size)
     expected_output = dense_in @ pea.sparse.block_coo_to_dense(sparse).T
 
-    def check(output: T.Tensor) -> None:
+    def check(output: Tensor) -> None:
         assert_close(output, expected_output, atol=1e-5, rtol=0)
 
     check(pea.sparse.StaticSparseLinear(sparse)(dense_in))

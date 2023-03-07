@@ -154,7 +154,7 @@ def block_coo_spmm_ipu(sparse: Tensor, dense: Tensor, mode: str) -> Tensor:
     (y,) = poptorch.custom_op(
         [dense],
         name="StaticSparseMatmul",
-        domain="ai.graphcore",
+        domain="ai.graphcore.pea",
         domain_version=1,
         example_outputs=[
             torch.zeros(output_shape, dtype=dense.dtype, device=dense.device)
