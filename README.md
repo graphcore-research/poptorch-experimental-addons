@@ -62,6 +62,7 @@ Note:
  - `./dev tests -k PATTERN` runs selected tests matching `PATTERN`
  - `./dev python ...` runs under Python, after building the native lib & setting `PYTHONPATH`
  - When adding `.cpp` files, they should also be added to `OBJECTS` in [Makefile](Makefile)
+ - Codelets used by `.cpp` custom ops should have names of form `*_codelet.cpp`
  - When extending impl modules, note that we use `__all__` to control the public API
 
 

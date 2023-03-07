@@ -29,5 +29,6 @@ setuptools.setup(
             list(map(str, Path("poptorch_experimental_addons/cpp").glob("*.[ch]pp"))),
         )
     ],
+    package_data={"poptorch_experimental_addons": ["cpp/*_codelet.cpp"]},
     cmdclass=dict(build_ext=make_ext),
 )
