@@ -89,8 +89,8 @@ struct Opx : popart::popx::Opx {
     void grow(poplar::program::Sequence&) const final {
         if (hasInput(1)) {
             popart::logging::warn(
-                "`custom_gradient(f, g)` has not pruned the forward pass of `g`, leading to"
-                " inefficient execution - please use the setting:"
+                "`custom_grad(fwd, fwd_surrogate)` has not pruned the forward pass of "
+                "`fwd_surrogate`, leading to inefficient execution - please use the setting:"
                 " `PopTorchOptions._popart.setPatterns(dict(CustomGradientOpPatten=True))`");
         }
         insert(outId(0), get(inId(0)));

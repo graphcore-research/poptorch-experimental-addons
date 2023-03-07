@@ -39,7 +39,7 @@ def custom_grad(fwd: Tensor, fwd_surrogate: Tensor) -> Tensor:
     y = custom_grad(torch.round(x), x)
     ```
 
-    Note that `fwd`, `bwd` and the output all have the same shape.
+    Note that `fwd`, `fwd_surrogate` and the output all have the same shape.
     """
     if fwd.shape != fwd_surrogate.shape:
         raise ValueError(
