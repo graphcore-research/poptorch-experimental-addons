@@ -11,10 +11,10 @@ import torch
 from torch import Tensor
 
 
-class _CustomGrad(torch.autograd.Function):
+class _AutogradProxy(torch.autograd.Function):
     @staticmethod
     def forward(  # type:ignore[override]
-        ctx: Any, fwd: Tensor, fwd_surrogate: Tensor
+        ctx: Any, fwd: Tensor, proxy: Tensor
     ) -> Tensor:
         return fwd
 
@@ -25,39 +25,39 @@ class _CustomGrad(torch.autograd.Function):
         return None, grad
 
 
-def custom_grad(fwd: Tensor, fwd_surrogate: Tensor) -> Tensor:
+def autograd_proxy(fwd: Tensor, proxy: Tensor) -> Tensor:
     """
     Return one tensor in the forward pass, using a separate tensor for the
     backward pass.
 
-    Typically, used `y = custom_grad(f(x), g(x))`, in which case the forward pass
+    Typically, used `y = autograd_proxy(f(x), g(x))`, in which case the forward pass
     uses `f`, such that `y = f(x)`, and the backward pass uses `g`, such that
     `dy/dx = dg/dx`.
 
     For example, a straight-through estimator for `round`:
     ```python
-    y = custom_grad(torch.round(x), x)
+    y = autograd_proxy(torch.round(x), x)
     ```
 
-    Note that `fwd`, `fwd_surrogate` and the output all have the same shape.
+    Note that `fwd`, `proxy` and the output all have the same shape.
     """
-    if fwd.shape != fwd_surrogate.shape:
+    if fwd.shape != proxy.shape:
         raise ValueError(
-            f"custom_grad expects both arguments to have the same shape, actual:"
-            f"fwd.shape: {fwd.shape}, fwd_surrogate.shape: {fwd_surrogate.shape}"
+            f"autograd_proxy expects both arguments to have the same shape, actual:"
+            f"fwd.shape: {fwd.shape}, proxy.shape: {proxy.shape}"
         )
     y: Tensor
     if poptorch.isRunningOnIpu():
         (y,) = poptorch.custom_op(
-            [fwd, fwd_surrogate],
-            name="CustomGradient",
+            [fwd, proxy],
+            name="AutogradProxy",
             domain="ai.graphcore.pea",
             domain_version=1,
             example_outputs=[fwd],
         )
     else:
-        y = _CustomGrad.apply(fwd, fwd_surrogate)
+        y = _AutogradProxy.apply(fwd, proxy)
     return y
 
 
-__all__ = ["custom_grad"]
+__all__ = ["autograd_proxy"]

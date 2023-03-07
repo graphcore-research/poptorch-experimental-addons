@@ -89,16 +89,16 @@ struct Opx : popart::popx::Opx {
     void grow(poplar::program::Sequence&) const final {
         if (hasInput(1)) {
             popart::logging::warn(
-                "`custom_grad(fwd, fwd_surrogate)` has not pruned the forward pass of "
-                "`fwd_surrogate`, leading to inefficient execution - please use the setting:"
-                " `PopTorchOptions._popart.setPatterns(dict(CustomGradientOpPatten=True))`");
+                "`autograd_proxy(fwd, proxy)` has not pruned the forward pass of "
+                "`proxy`, leading to inefficient execution - please use the setting:"
+                " `PopTorchOptions._popart.setPatterns(dict(AutogradProxyOpPattern=True))`");
         }
         insert(outId(0), get(inId(0)));
     }
 };
 
-const popart::OperatorIdentifier Op::ID = {"ai.graphcore.pea", "CustomGradient", 1};
-const popart::OperatorIdentifier GradOp::ID = {"ai.graphcore.pea", "CustomGradientGrad", 1};
+const popart::OperatorIdentifier Op::ID = {"ai.graphcore.pea", "AutogradProxy", 1};
+const popart::OperatorIdentifier GradOp::ID = {"ai.graphcore.pea", "AutogradProxyGrad", 1};
 popart::OpDefinition::DataTypes T = {popart::DataType::FLOAT16, popart::DataType::FLOAT};
 popart::OpCreator<Op> opCreator(
     {{Op::ID,
@@ -110,9 +110,9 @@ popart::OpCreator<Op> opCreator(
     true);
 popart::popx::OpxCreator<Opx> opxCreator({Op::ID, GradOp::ID});
 
-// CustomGradientOpPatten
+// AutogradProxyOpPattern
 
-struct CustomGradientOpPatten : popart::PreAliasPattern {
+struct Pattern : popart::PreAliasPattern {
     bool matches(popart::Op* op) const override { return op->opid == Op::ID; }
 
     std::vector<const popart::Tensor*> touches(popart::Op* op) const override {
@@ -132,8 +132,6 @@ struct CustomGradientOpPatten : popart::PreAliasPattern {
     }
 };
 
-static popart::PatternCreator<CustomGradientOpPatten> RemoveAllReducePatternCreator(
-    "CustomGradientOpPatten",
-    false);
+static popart::PatternCreator<Pattern> patternCreator("AutogradProxyOpPattern", false);
 
 }  // namespace
