@@ -44,6 +44,9 @@ def all_reduce_cross_replica_sum(
     Sums tensors occupying the same memory location across IPUs, resulting
     in replicated tensors.
 
+    insert_in_grad_graph is a boolean argument that inserts the all_reduce in
+    the gradient graph (backward pass) rather than the forward graph.
+
     x -- shape (*)
     returns -- shape (*)
     """

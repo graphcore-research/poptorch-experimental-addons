@@ -58,7 +58,7 @@ def test_all_reduce() -> None:
     set_seed(112358)
     num_ipus = 2
 
-    X = einops.rearrange(torch.arange(32, dtype=torch.float32), "(d n)  -> n d", n=4)
+    X = einops.rearrange(torch.arange(32, dtype=torch.float32), "(d n) -> n d", n=4)
 
     sim = _AllReduceSimulator(deepcopy(X), replication_factor=num_ipus)
     out_true, loss = sim()
