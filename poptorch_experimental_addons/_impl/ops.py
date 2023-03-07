@@ -19,7 +19,7 @@ def broadcasted_pairwise_distance(tensor1: Tensor, tensor2: Tensor, p: int) -> T
 
     tensor1 -- shape (M, K)
     tensor2 -- shape (N, K)
-    returns --  shape (M,N)
+    returns --  shape (M, N)
     """
     if tensor1.dim() != 2 or tensor2.dim() != 2:
         raise ValueError(
