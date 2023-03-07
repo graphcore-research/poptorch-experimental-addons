@@ -189,7 +189,7 @@ from ._impl.sparse import __all__, __doc__  # NOQA:F401</code></pre>
     (y,) = poptorch.custom_op(
         [dense],
         name=&#34;StaticSparseMatmul&#34;,
-        domain=&#34;ai.graphcore&#34;,
+        domain=&#34;ai.graphcore.pea&#34;,
         domain_version=1,
         example_outputs=[
             torch.zeros(output_shape, dtype=dense.dtype, device=dense.device)

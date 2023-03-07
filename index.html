@@ -27,8 +27,8 @@ with general utility …" />
 with general utility.</p>
 <pre><code class="language-python">import poptorch_experimental_addons as pea
 </code></pre>
-<p>Each addon is provided à la carte via submodules - please explore these to see
-if <code>pea</code> has something useful for you.</p>
+<p>Addons are provided as standalone functions and à la carte via submodules
+- please explore these to see if <code>pea</code> has something useful for you.</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -43,8 +43,8 @@ with general utility.
 import poptorch_experimental_addons as pea
 ```
 
-Each addon is provided à la carte via submodules - please explore these to see
-if `pea` has something useful for you.
+Addons are provided as standalone functions and à la carte via submodules
+- please explore these to see if `pea` has something useful for you.
 &#34;&#34;&#34;
 
 
@@ -70,7 +70,9 @@ def _load_native_library() -&gt; None:
 
 _load_native_library()
 
-from . import collectives, sparse  # NOQA:F401,E402</code></pre>
+from . import collectives, sparse  # NOQA:F401,E402
+from ._impl.core import *  # NOQA:F401,E402,F403
+from ._impl.core import __all__  # NOQA:F401,E402</code></pre>
 </details>
 </section>
 <section>
@@ -78,7 +80,7 @@ from . import collectives, sparse  # NOQA:F401,E402</code></pre>
 <dl>
 <dt><code class="name"><a title="poptorch_experimental_addons.collectives" href="collectives.html">poptorch_experimental_addons.collectives</a></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Primitives for collective communication across IPU clusters.</p></div>
 </dd>
 <dt><code class="name"><a title="poptorch_experimental_addons.sparse" href="sparse.html">poptorch_experimental_addons.sparse</a></code></dt>
 <dd>
@@ -89,6 +91,61 @@ from . import collectives, sparse  # NOQA:F401,E402</code></pre>
 <section>
 </section>
 <section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="poptorch_experimental_addons.autograd_proxy"><code class="name flex">
+<span>def <span class="ident">autograd_proxy</span></span>(<span>fwd: torch.Tensor, proxy: torch.Tensor) ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Return one tensor in the forward pass, using a separate tensor for the
+backward pass.</p>
+<p>Typically, used <code>y = autograd_proxy(f(x), g(x))</code>, in which case the forward pass
+uses <code>f</code>, such that <code>y = f(x)</code>, and the backward pass uses <code>g</code>, such that
+<code>dy/dx = dg/dx</code>.</p>
+<p>For example, a straight-through estimator for <code>round</code>:</p>
+<pre><code class="language-python">y = autograd_proxy(torch.round(x), x)
+</code></pre>
+<p>Note that <code>fwd</code>, <code>proxy</code> and the output all have the same shape.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def autograd_proxy(fwd: Tensor, proxy: Tensor) -&gt; Tensor:
+    &#34;&#34;&#34;
+    Return one tensor in the forward pass, using a separate tensor for the
+    backward pass.
+
+    Typically, used `y = autograd_proxy(f(x), g(x))`, in which case the forward pass
+    uses `f`, such that `y = f(x)`, and the backward pass uses `g`, such that
+    `dy/dx = dg/dx`.
+
+    For example, a straight-through estimator for `round`:
+    ```python
+    y = autograd_proxy(torch.round(x), x)
+    ```
+
+    Note that `fwd`, `proxy` and the output all have the same shape.
+    &#34;&#34;&#34;
+    if fwd.shape != proxy.shape:
+        raise ValueError(
+            f&#34;autograd_proxy expects both arguments to have the same shape, actual:&#34;
+            f&#34;fwd.shape: {fwd.shape}, proxy.shape: {proxy.shape}&#34;
+        )
+    y: Tensor
+    if poptorch.isRunningOnIpu():
+        (y,) = poptorch.custom_op(
+            [fwd, proxy],
+            name=&#34;AutogradProxy&#34;,
+            domain=&#34;ai.graphcore.pea&#34;,
+            domain_version=1,
+            example_outputs=[fwd],
+        )
+    else:
+        y = _AutogradProxy.apply(fwd, proxy)
+    return y</code></pre>
+</details>
+</dd>
+</dl>
 </section>
 <section>
 </section>
@@ -103,6 +160,11 @@ from . import collectives, sparse  # NOQA:F401,E402</code></pre>
 <ul>
 <li><code><a title="poptorch_experimental_addons.collectives" href="collectives.html">poptorch_experimental_addons.collectives</a></code></li>
 <li><code><a title="poptorch_experimental_addons.sparse" href="sparse.html">poptorch_experimental_addons.sparse</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="poptorch_experimental_addons.autograd_proxy" href="#poptorch_experimental_addons.autograd_proxy">autograd_proxy</a></code></li>
 </ul>
 </li>
 </ul>
