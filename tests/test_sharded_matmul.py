@@ -3,7 +3,7 @@
 from copy import deepcopy
 from enum import Enum
 from functools import partial
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, Tuple, Dict
 
 import einops
 import poptorch
@@ -64,7 +64,7 @@ def _repcolcol_simulator(
     return out
 
 
-_sharding_transform_map = {
+_sharding_transform_map: Dict = {
     Sharding.Replicated: {
         "in": lambda x, r: x,
         "out_sim": lambda x: x,
@@ -83,7 +83,7 @@ _sharding_transform_map = {
 }
 
 
-_op_mapping = {
+_op_mapping: Dict = {
     pea.sharded.rowcolrow_sharded_matmul: {
         "sharding": (Sharding.Row, Sharding.Column, Sharding.Row),
         "simulator": _rowcolrow_simulator,
@@ -169,13 +169,31 @@ def generate_inputs() -> Tuple[torch.Tensor, torch.Tensor]:
 
 def simulate_sharded_matmul(
     X: torch.Tensor, Y: torch.Tensor, op: Callable, num_ipus: int
-) -> Tuple[Any, Any, Any]:
+) -> Tuple[Any, Any, Any, Any, Any]:
     simulator = _ShardedMatmulSimulator(
         deepcopy(X),
         deepcopy(Y),
         replication_factor=num_ipus,
         sharded_op=op,
     )
+    lr = 1.0
+    if simulator.out_sharding == Sharding.Replicated:
+        lr /= num_ipus
+        optimizer = torch.optim.SGD(simulator.parameters(), lr=lr)
+    else:
+        params = [
+            {"params": simulator.X, "lr": lr},
+            {"params": simulator.Y, "lr": lr},
+        ]
+        if simulator.X_sharding == Sharding.Replicated:
+            params[0]["lr"] *= num_ipus  # type: ignore
+        if (
+            simulator.X_sharding == Sharding.Row
+            and simulator.Y_sharding == Sharding.Column
+        ):
+            params[0]["lr"] /= num_ipus  # type: ignore
+        optimizer = torch.optim.SGD(params, lr=lr)
+    optimizer.zero_grad()
     out, loss = simulator()
     loss.mean().backward()
     grad_X = _sharding_transform_map[simulator.X_sharding]["out_sim"](simulator.X.grad)
@@ -185,12 +203,13 @@ def simulate_sharded_matmul(
     if simulator.out_sharding != Sharding.Replicated:
         grad_X *= num_ipus
         grad_Y *= num_ipus
-    return out, grad_X, grad_Y
+    optimizer.step()
+    return out, grad_X, grad_Y, simulator.X.data, simulator.Y.data
 
 
 def run_sharded_matmul(
     X: torch.Tensor, Y: torch.Tensor, op: Callable, num_ipus: int
-) -> Tuple[Any, Any, Any]:
+) -> Tuple[Any, Any, Any, Any, Any]:
     options = poptorch.Options()
     options.replicationFactor(num_ipus)
     options.outputMode(poptorch.OutputMode.All)
@@ -201,7 +220,7 @@ def run_sharded_matmul(
     tester = _ShardedMatmulTester(
         deepcopy(X), deepcopy(Y), replication_factor=num_ipus, sharded_op=op
     )
-    optimizer = poptorch.optim.SGD(tester.parameters(), lr=0.0)
+    optimizer = poptorch.optim.SGD(tester.parameters(), lr=1.0)
     tester = poptorch.trainingModel(tester, options, optimizer)
     replicated_params = ["X"] if tester.X_sharding == Sharding.Replicated else []
     utils._apply_replica_grouping(
@@ -213,7 +232,7 @@ def run_sharded_matmul(
     grad_X = _sharding_transform_map[tester.X_sharding]["out_test"](grad_X, r=num_ipus)
     grad_Y = tester.getAnchoredTensor("grad_Y")  # type: ignore
     grad_Y = _sharding_transform_map[tester.Y_sharding]["out_test"](grad_Y, r=num_ipus)
-    return out, grad_X, grad_Y
+    return out, grad_X, grad_Y, tester.X.data, tester.Y.data
 
 
 @pytest.mark.parametrize("op", list(_op_mapping.keys()))
@@ -222,8 +241,9 @@ def test_sharded_matmul(op: Callable) -> None:
     num_ipus = 2
     actual = run_sharded_matmul(X, Y, op, num_ipus)
     expected = simulate_sharded_matmul(X, Y, op, num_ipus)
+    breakpoint()
     list(map(assert_close, actual, expected))
 
 
 if __name__ == "__main__":
-    test_sharded_matmul(pea.sharded.colrowrep_sharded_matmul)
+    test_sharded_matmul(pea.sharded.rowcolrow_sharded_matmul)
