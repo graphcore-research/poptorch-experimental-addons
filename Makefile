@@ -7,7 +7,7 @@ OBJDIR ?= $(dir $(OUT))obj
 CXXFLAGS = -Wall -Wextra -Werror -std=c++17 -O2 -g -fPIC -DONNX_NAMESPACE=onnx
 LIBS = -lpoplar -lpopart -lpopops -lpopsparse -lpoputil
 
-OBJECTS = $(OBJDIR)/static_spmm.o
+OBJECTS = $(OBJDIR)/static_spmm.o $(OBJDIR)/autograd_proxy.o
 
 # Rules
 
