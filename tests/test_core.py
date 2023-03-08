@@ -24,7 +24,7 @@ def run_forward_and_backward(
             for k, v in args.items():
                 self.register_parameter(k, nn.Parameter(v.clone()))
 
-        def forward(self) -> Tensor:
+        def forward(self) -> Dict[str, Tensor]:
             output = fn(**{k: getattr(self, k) for k in args})
             loss: Tensor = poptorch.identity_loss(output, reduction="sum")
             return dict(output=output, loss=loss)
