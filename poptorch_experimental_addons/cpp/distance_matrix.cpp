@@ -380,7 +380,8 @@ class L1DistanceOpx : public popart::popx::Opx {
     L1DistanceOpx(popart::Op* op, popart::popx::Devicex* devicex) : popart::popx::Opx(op, devicex) {
         verifyOp<L1DistanceOp>(op, {CustomOperators::L1DistanceId});
         // add codelets to graph
-        graph().addCodelets("poptorch_experimental_addons/cpp/distance_matrix_codelet.cpp");
+        graph().addCodelets(ROOT_PATH
+                            "/poptorch_experimental_addons/cpp/distance_matrix_codelet.cpp");
     }
 
     void grow(poplar::program::Sequence& prog) const final {
@@ -418,7 +419,8 @@ class L2DistanceOpx : public popart::popx::Opx {
     L2DistanceOpx(popart::Op* op, popart::popx::Devicex* devicex) : popart::popx::Opx(op, devicex) {
         verifyOp<L2DistanceOp>(op, {CustomOperators::L2DistanceId});
         // add codelets to graph
-        graph().addCodelets("poptorch_experimental_addons/cpp/distance_matrix_codelet.cpp");
+        graph().addCodelets(ROOT_PATH
+                            "/poptorch_experimental_addons/cpp/distance_matrix_codelet.cpp");
     }
 
     void grow(poplar::program::Sequence& prog) const final {

@@ -83,13 +83,14 @@ def distance_matrix(tensor1: Tensor, tensor2: Tensor, p: int) -> Tensor:
             f"for `tensor1` ({tensor1.shape[-1]}) and `tensor2` ({tensor2.shape[-1]})"
         )
 
+    y: Tensor
     if poptorch.isRunningOnIpu():
         if p not in [1, 2]:
             raise NotImplementedError(
                 "distance_matrix implemented only for p=1,2 on IPU"
             )
 
-        out = poptorch.custom_op(
+        (y,) = poptorch.custom_op(
             name=f"L{p}Distance",
             domain_version=1,
             domain="ai.graphcore.pea",
@@ -99,11 +100,11 @@ def distance_matrix(tensor1: Tensor, tensor2: Tensor, p: int) -> Tensor:
                     dtype=tensor1.dtype, size=[tensor1.shape[0], tensor2.shape[0]]
                 )
             ],
-        )[0]
+        )
     else:
-        out = torch.cdist(tensor1, tensor2, p=p)
+        y = torch.cdist(tensor1, tensor2, p=p)
 
-    return out
+    return y
 
 
 __all__ = ["autograd_proxy", "distance_matrix"]

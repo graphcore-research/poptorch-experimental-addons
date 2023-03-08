@@ -2,6 +2,7 @@
 
 import subprocess
 from pathlib import Path
+import site
 
 import setuptools
 import setuptools.command.build_ext
@@ -14,7 +15,15 @@ class make_ext(setuptools.command.build_ext.build_ext):  # type:ignore[misc]
                 self.get_ext_fullname(ext.name)
             )
             objdir = filename.with_suffix("")
-            subprocess.check_call(["make", f"OUT={filename}", f"OBJDIR={objdir}"])
+            root_path = site.getsitepackages()[0]
+            subprocess.check_call(
+                [
+                    "make",
+                    f"OUT={filename}",
+                    f"OBJDIR={objdir}",
+                    f"ROOT_PATH={root_path}",
+                ]
+            )
         else:
             super().build_extension(ext)
 
