@@ -64,8 +64,9 @@ def distance_matrix(tensor1: Tensor, tensor2: Tensor, p: int) -> Tensor:
     """
     p-norm broadcasted pairwise distance between two collections of vectors.
 
-    Computes p-norm reduction along trailing dimension of tensor1[:,None,:] - tensor2[None,:,:]
-    without materializing the intermediate broadcasted difference, for memory optimization.
+    Computes p-norm reduction along trailing dimension of
+    tensor1[:,None,:] - tensor2[None,:,:] without materializing the intermediate
+    broadcasted difference, for memory optimization.
 
     tensor1 -- shape (M, K)
     tensor2 -- shape (N, K)
