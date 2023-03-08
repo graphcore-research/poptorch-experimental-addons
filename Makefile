@@ -8,7 +8,7 @@ ROOT_PATH ?= $(CURDIR)
 CXXFLAGS = -Wall -Wextra -Werror -std=c++17 -O2 -g -fPIC -DONNX_NAMESPACE=onnx -DROOT_PATH=\"$(ROOT_PATH)\"
 LIBS = -lpoplar -lpopart -lpopops -lpopsparse -lpoputil
 
-OBJECTS = $(OBJDIR)/static_spmm.o $(OBJDIR)/broadcasted_pairwise_distance.o
+OBJECTS = $(OBJDIR)/static_spmm.o $(OBJDIR)/autograd_proxy.o $(OBJDIR)/replicatedallreducetp.o $(OBJDIR)/distance_matrix.o
 
 # Rules
 
