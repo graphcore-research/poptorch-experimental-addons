@@ -19,10 +19,6 @@
 #include <popart/popx/opxmanager.hpp>
 #pragma GCC diagnostic pop
 
-namespace Onnx::CustomOperators {
-const popart::OperatorIdentifier StaticSparseMatmul = {"ai.graphcore", "StaticSparseMatmul", 1};
-}  // namespace Onnx::CustomOperators
-
 namespace {
 popsparse::static_::PlanningCache* sparsePlanningCache() {
     static popsparse::static_::PlanningCache cache;
@@ -120,6 +116,7 @@ poplar::Tensor constSparseAndDenseMatMul(poplar::Graph& graph,
 }
 
 struct CustomOp : popart::Op {
+    static const popart::OperatorIdentifier ID;
     popsparse::CSRMatrix<float> matrix;
     std::string mode;
 
@@ -143,7 +140,7 @@ struct CustomOp : popart::Op {
 
 struct CustomOpx : popart::popx::Opx {
     CustomOpx(popart::Op* op, popart::popx::Devicex* devicex) : popart::popx::Opx(op, devicex) {
-        verifyOp<CustomOp>(op, Onnx::CustomOperators::StaticSparseMatmul);
+        verifyOp<CustomOp>(op, CustomOp::ID);
     }
     void grow(poplar::program::Sequence& prog) const final {
         popsparse::addCodelets(graph());  // Note: this might not belong here
@@ -156,9 +153,10 @@ struct CustomOpx : popart::popx::Opx {
     }
 };
 
+const popart::OperatorIdentifier CustomOp::ID = {"ai.graphcore.pea", "StaticSparseMatmul", 1};
 popart::OpDefinition::DataTypes T = {popart::DataType::FLOAT16, popart::DataType::FLOAT};
 popart::OpCreator<CustomOp> opCreator(
-    {{Onnx::CustomOperators::StaticSparseMatmul,
+    {{CustomOp::ID,
       {popart::OpDefinition::Inputs({{"input", T}}), popart::OpDefinition::Outputs({{"output", T}}),
        popart::OpDefinition::Attributes({{"mode", {"string"}},
                                          {"n_rows", {"int"}},
@@ -181,5 +179,5 @@ popart::OpCreator<CustomOp> opCreator(
         return std::make_unique<CustomOp>(info.opid, info.settings, cooToCsr(matrix), mode);
     },
     true);
-popart::popx::OpxCreator<CustomOpx> opxCreator(Onnx::CustomOperators::StaticSparseMatmul);
+popart::popx::OpxCreator<CustomOpx> opxCreator(CustomOp::ID);
 }  // namespace

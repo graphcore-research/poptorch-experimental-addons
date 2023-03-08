@@ -8,8 +8,8 @@ with general utility.
 import poptorch_experimental_addons as pea
 ```
 
-Each addon is provided à la carte via submodules - please explore these to see
-if `pea` has something useful for you.
+Addons are provided as standalone functions and à la carte via submodules
+- please explore these to see if `pea` has something useful for you.
 """
 
 
@@ -35,4 +35,6 @@ def _load_native_library() -> None:
 
 _load_native_library()
 
-from . import collectives,  sharded, sparse  # NOQA:F401,E402
+from . import collectives, sharded, sparse  # NOQA:F401,E402
+from ._impl.core import *  # NOQA:F401,E402,F403
+from ._impl.core import __all__  # NOQA:F401,E402
