@@ -78,6 +78,52 @@ shape (replication_factor, </em>)</p></div>
     return out</code></pre>
 </details>
 </dd>
+<dt id="poptorch_experimental_addons.collectives.all_reduce_cross_replica_sum"><code class="name flex">
+<span>def <span class="ident">all_reduce_cross_replica_sum</span></span>(<span>x: torch.Tensor, replication_factor: int, insert_in_grad_graph: bool = False) ‑> Any</span>
+</code></dt>
+<dd>
+<div class="desc"><p>All-reduce across IPU program replicas</p>
+<p>Sums tensors occupying the same memory location across IPUs, resulting
+in replicated tensors.</p>
+<p>insert_in_grad_graph is a boolean argument that inserts the all_reduce in
+the gradient graph (backward pass) rather than the forward graph.</p>
+<p>x &ndash; shape (<em>)
+returns &ndash; shape (</em>)</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def all_reduce_cross_replica_sum(
+    x: torch.Tensor, replication_factor: int, insert_in_grad_graph: bool = False
+) -&gt; Any:
+    &#34;&#34;&#34;
+    All-reduce across IPU program replicas
+
+    Sums tensors occupying the same memory location across IPUs, resulting
+    in replicated tensors.
+
+    insert_in_grad_graph is a boolean argument that inserts the all_reduce in
+    the gradient graph (backward pass) rather than the forward graph.
+
+    x -- shape (*)
+    returns -- shape (*)
+    &#34;&#34;&#34;
+    rg_info = [replication_factor, 1, replication_factor]
+    out = poptorch.custom_op(
+        [x],
+        name=&#34;ReplicatedAllReduceTP&#34;,
+        domain=&#34;ai.graphcore&#34;,
+        domain_version=1,
+        example_outputs=[x],
+        attributes={
+            &#34;op&#34;: &#34;sum&#34;,
+            &#34;__collectiveReplicaGrouping&#34;: rg_info,
+            &#34;backwards&#34;: insert_in_grad_graph,
+        },
+    )[0]
+    return out</code></pre>
+</details>
+</dd>
 </dl>
 </section>
 <section>
@@ -97,6 +143,7 @@ shape (replication_factor, </em>)</p></div>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
 <li><code><a title="poptorch_experimental_addons.collectives.all_gather_cross_replica_mean_grad" href="#poptorch_experimental_addons.collectives.all_gather_cross_replica_mean_grad">all_gather_cross_replica_mean_grad</a></code></li>
+<li><code><a title="poptorch_experimental_addons.collectives.all_reduce_cross_replica_sum" href="#poptorch_experimental_addons.collectives.all_reduce_cross_replica_sum">all_reduce_cross_replica_sum</a></code></li>
 </ul>
 </li>
 </ul>
