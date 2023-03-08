@@ -1,8 +1,8 @@
 # Copyright (c) 2023 Graphcore Ltd. All rights reserved.
 
+import site
 import subprocess
 from pathlib import Path
-import site
 
 import setuptools
 import setuptools.command.build_ext
