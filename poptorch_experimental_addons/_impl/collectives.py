@@ -39,4 +39,35 @@ def all_gather_cross_replica_mean_grad(x: torch.Tensor, replication_factor: int)
     return out
 
 
-__all__ = ["all_gather_cross_replica_mean_grad"]
+def all_reduce_cross_replica_sum(
+    x: torch.Tensor, replication_factor: int, insert_in_grad_graph: bool = False
+) -> Any:
+    """
+    All-reduce across IPU program replicas
+
+    Sums tensors occupying the same memory location across IPUs, resulting
+    in replicated tensors.
+
+    insert_in_grad_graph is a boolean argument that inserts the all_reduce in
+    the gradient graph (backward pass) rather than the forward graph.
+
+    x -- shape (*)
+    returns -- shape (*)
+    """
+    rg_info = [replication_factor, 1, replication_factor]
+    out = poptorch.custom_op(
+        [x],
+        name="ReplicatedAllReduceTP",
+        domain="ai.graphcore",
+        domain_version=1,
+        example_outputs=[x],
+        attributes={
+            "op": "sum",
+            "__collectiveReplicaGrouping": rg_info,
+            "backwards": insert_in_grad_graph,
+        },
+    )[0]
+    return out
+
+
+__all__ = ["all_gather_cross_replica_mean_grad", "all_reduce_cross_replica_sum"]

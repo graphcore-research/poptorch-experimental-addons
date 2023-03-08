@@ -24,7 +24,7 @@ def set_seed(seed: int) -> None:
     np.random.seed(seed)
 
 
-class _AllGatherCrossReplicaTester(torch.nn.Module):
+class _AllReduceCrossReplicaTester(torch.nn.Module):
     def __init__(self, X: torch.Tensor, replication_factor: int):
         super().__init__()
         self.X = nn.Parameter(
@@ -33,13 +33,13 @@ class _AllGatherCrossReplicaTester(torch.nn.Module):
         self.replication_factor = replication_factor
 
     def forward(self) -> Tuple[Any, Any]:
-        out = pea.collectives.all_gather_cross_replica_mean_grad(
+        out = pea.collectives.all_reduce_cross_replica_sum(
             self.X, self.replication_factor
         )
         return out, poptorch.identity_loss(out.pow(2), reduction="sum")
 
 
-class _AllGatherSimulator(torch.nn.Module):
+class _AllReduceSimulator(torch.nn.Module):
     def __init__(self, X: torch.Tensor, replication_factor: int):
         super().__init__()
         self.X = nn.Parameter(
@@ -48,18 +48,19 @@ class _AllGatherSimulator(torch.nn.Module):
         self.replication_factor = replication_factor
 
     def forward(self) -> Tuple[Any, Any]:
-        out = torch.stack([self.X for _ in range(self.replication_factor)])
+        out = einops.reduce(self.X, "r n d -> n d", "sum")
+        out = einops.repeat(out, "n d -> r n d", r=self.replication_factor)
         loss = out.pow(2).sum(dim=list(range(out.ndim))[1:])
         return torch.vstack([*out]), loss
 
 
-def test_all_gather() -> None:
+def test_all_reduce() -> None:
     set_seed(112358)
     num_ipus = 2
 
-    X = einops.rearrange(torch.arange(32, dtype=torch.float32), "(d n)  -> n d", n=4)
+    X = einops.rearrange(torch.arange(32, dtype=torch.float32), "(d n) -> n d", n=4)
 
-    sim = _AllGatherSimulator(deepcopy(X), replication_factor=num_ipus)
+    sim = _AllReduceSimulator(deepcopy(X), replication_factor=num_ipus)
     out_true, loss = sim()
     # loss.sum().backward()  # sum losses across IPUs to generate gradients
     loss.mean().backward()  # average losses across IPUs to generate gradients
@@ -72,7 +73,7 @@ def test_all_gather() -> None:
     options.anchorTensor("grad_X", "Gradient___X")
     options._Popart.setPatterns({"OpToIdentity": True})
 
-    model = _AllGatherCrossReplicaTester(deepcopy(X), num_ipus)
+    model = _AllReduceCrossReplicaTester(deepcopy(X), num_ipus)
     optimizer = poptorch.optim.SGD(model.parameters(), lr=1.0)
     model = poptorch.trainingModel(model, options, optimizer)
     _apply_replica_grouping(model, CommGroupType.Orthogonal, 1)
