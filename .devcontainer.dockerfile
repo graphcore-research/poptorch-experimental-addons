@@ -1,7 +1,9 @@
 FROM graphcore/pytorch:3.1.0-ubuntu-20.04
 
 RUN apt-get update \
-    && apt-get install -y sudo \
+    && apt-get install -y \
+        clang-format \
+        sudo \
     && apt-get clean
 
 # Snippet from https://code.visualstudio.com/remote/advancedcontainers/add-nonroot-user
