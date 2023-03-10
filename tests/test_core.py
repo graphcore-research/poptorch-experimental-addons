@@ -63,6 +63,7 @@ def test_autograd_proxy(device: str) -> None:
 
 @pytest.mark.parametrize("p", [1, 2])
 def test_distance_matrix(p: int) -> None:
+    torch.manual_seed(1234)
     M, N, K = 10, 30, 50
     tensor1 = 10 + 20 * torch.randn(size=(M, K), dtype=torch.float32)
     tensor2 = -10 + 10 * torch.randn(size=(N, K), dtype=torch.float32)

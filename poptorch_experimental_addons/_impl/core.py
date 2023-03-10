@@ -4,6 +4,7 @@
 Top-level utilities.
 """
 
+from pathlib import Path
 from typing import Any, Tuple
 
 import poptorch
@@ -72,25 +73,23 @@ def distance_matrix(tensor1: Tensor, tensor2: Tensor, p: int) -> Tensor:
     tensor2 -- shape (N, K)
     returns --  shape (M, N)
     """
+    if p not in [1, 2]:
+        raise NotImplementedError("distance_matrix implemented only for p=1,2")
+
     if tensor1.dim() != 2 or tensor2.dim() != 2:
         raise ValueError(
             "distance_matrix requires 2-dimensional inputs"
-            f"`tensor1` (dim = {tensor1.dim()}) and `tensor2` (dim = {tensor2.dim()})"
+            f" `tensor1` (dim = {tensor1.dim()}) and `tensor2` (dim = {tensor2.dim()})"
         )
 
     if tensor1.shape[-1] != tensor2.shape[-1]:
         raise ValueError(
             "distance_matrix requires rightmost dimension of same size"
-            f"for `tensor1` ({tensor1.shape[-1]}) and `tensor2` ({tensor2.shape[-1]})"
+            f" for `tensor1` ({tensor1.shape[-1]}) and `tensor2` ({tensor2.shape[-1]})"
         )
 
     y: Tensor
     if poptorch.isRunningOnIpu():
-        if p not in [1, 2]:
-            raise NotImplementedError(
-                "distance_matrix implemented only for p=1,2 on IPU"
-            )
-
         (y,) = poptorch.custom_op(
             name=f"L{p}Distance",
             domain_version=1,
@@ -101,6 +100,7 @@ def distance_matrix(tensor1: Tensor, tensor2: Tensor, p: int) -> Tensor:
                     dtype=tensor1.dtype, size=[tensor1.shape[0], tensor2.shape[0]]
                 )
             ],
+            attributes=dict(root_path=str(Path(__file__).parent.parent)),
         )
     else:
         y = torch.cdist(tensor1, tensor2, p=p)

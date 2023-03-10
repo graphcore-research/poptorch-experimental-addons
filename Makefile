@@ -3,9 +3,8 @@
 CXX ?= g++
 OUT ?= build/libpoptorch_experimental_addons.so
 OBJDIR ?= $(dir $(OUT))obj
-ROOT_PATH ?= $(CURDIR)
 
-CXXFLAGS = -Wall -Wextra -Werror -std=c++17 -O2 -g -fPIC -DONNX_NAMESPACE=onnx -DROOT_PATH=\"$(ROOT_PATH)\"
+CXXFLAGS = -Wall -Wextra -Werror -std=c++17 -O2 -g -fPIC -DONNX_NAMESPACE=onnx
 LIBS = -lpoplar -lpopart -lpopops -lpopsparse -lpoputil
 
 OBJECTS = $(OBJDIR)/static_spmm.o $(OBJDIR)/autograd_proxy.o $(OBJDIR)/replicatedallreducetp.o $(OBJDIR)/distance_matrix.o

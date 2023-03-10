@@ -59,8 +59,6 @@ poplar::Tensor getCachedCopy(std::map<std::pair<size_t, size_t>, poplar::Tensor>
     return copy;
 }
 
-}  // namespace
-
 poplar::Tensor l1distance(poplar::Graph& graph,
                           const poplar::Tensor& a,
                           const poplar::Tensor& b,
@@ -224,20 +222,14 @@ poplar::Tensor l2distancegrad(poplar::Graph& graph,
     return grad;
 }
 
-namespace CustomOperators {
 const popart::OperatorIdentifier L1DistanceId = {"ai.graphcore.pea", "L1Distance", 1};
 const popart::OperatorIdentifier L2DistanceId = {"ai.graphcore.pea", "L2Distance", 1};
-}  // namespace CustomOperators
-namespace CustomGradOperators {
 const popart::OperatorIdentifier L1DistanceGradId = {"ai.graphcore.pea", "L1DistanceGrad", 1};
 const popart::OperatorIdentifier L2DistanceGradId = {"ai.graphcore.pea", "L2DistanceGrad", 1};
-}  // namespace CustomGradOperators
 
 class L1DistanceOp;
-class L1DistanceOpx;
 class L1DistanceGradOpx;
 class L2DistanceOp;
-class L2DistanceOpx;
 class L2DistanceGradOpx;
 
 class L1DistanceGradOp : public popart::Op {
@@ -254,10 +246,19 @@ class L1DistanceGradOp : public popart::Op {
         outInfo(1) = BInfo;
     };
 
-    const std::vector<popart::GradInOutMapper>& gradInputInfo() const;
+    const std::vector<popart::GradInOutMapper>& gradInputInfo() const {
+        static const std::vector<popart::GradInOutMapper> inInfo = {
+            {0, 0, popart::GradOpInType::GradOut},
+            {1, 0, popart::GradOpInType::In},
+            {2, 1, popart::GradOpInType::In}};
+        return inInfo;
+    }
 
     // The Grad Op has 1 output, which is the gradient of the only input
-    const std::map<int, int>& gradOutToNonGradIn() const;
+    const std::map<int, int>& gradOutToNonGradIn() const {
+        static const std::map<int, int> outInfo = {{0, 0}, {1, 1}};
+        return outInfo;
+    }
 
     bool requiresRandomSeed() const override { return false; }
 
@@ -267,8 +268,13 @@ class L1DistanceGradOp : public popart::Op {
 
 class L1DistanceOp : public popart::Op {
    public:
-    L1DistanceOp(const popart::OperatorIdentifier& _opid, const popart::Op::Settings& settings_)
-        : popart::Op(_opid, settings_) {}
+    std::string rootPath;
+
+   public:
+    L1DistanceOp(const popart::OperatorIdentifier& _opid,
+                 const popart::Op::Settings& settings_,
+                 const std::string& rootPath_)
+        : popart::Op(_opid, settings_), rootPath(rootPath_) {}
 
     std::unique_ptr<Op> clone() const final { return std::make_unique<L1DistanceOp>(*this); }
 
@@ -306,10 +312,20 @@ class L2DistanceGradOp : public popart::Op {
         outInfo(1) = BInfo;
     };
 
-    const std::vector<popart::GradInOutMapper>& gradInputInfo() const;
+    const std::vector<popart::GradInOutMapper>& gradInputInfo() const {
+        static const std::vector<popart::GradInOutMapper> inInfo = {
+            {0, 0, popart::GradOpInType::GradOut},
+            {1, 0, popart::GradOpInType::In},
+            {2, 1, popart::GradOpInType::In},
+            {3, 0, popart::GradOpInType::Out}};
+        return inInfo;
+    }
 
     // The Grad Op has 1 output, which is the gradient of the only input
-    const std::map<int, int>& gradOutToNonGradIn() const;
+    const std::map<int, int>& gradOutToNonGradIn() const {
+        static const std::map<int, int> outInfo = {{0, 0}, {1, 1}};
+        return outInfo;
+    }
 
     bool requiresRandomSeed() const override { return false; }
 
@@ -319,8 +335,13 @@ class L2DistanceGradOp : public popart::Op {
 
 class L2DistanceOp : public popart::Op {
    public:
-    L2DistanceOp(const popart::OperatorIdentifier& _opid, const popart::Op::Settings& settings_)
-        : popart::Op(_opid, settings_) {}
+    std::string rootPath;
+
+   public:
+    L2DistanceOp(const popart::OperatorIdentifier& _opid,
+                 const popart::Op::Settings& settings_,
+                 const std::string& rootPath_)
+        : popart::Op(_opid, settings_), rootPath(rootPath_) {}
 
     std::unique_ptr<Op> clone() const final { return std::make_unique<L2DistanceOp>(*this); }
 
@@ -344,7 +365,6 @@ class L2DistanceOp : public popart::Op {
     bool requiresRandomSeed() const override { return false; }
 };
 
-namespace {
 using popart::DataType;
 using popart::OpDefinition;
 
@@ -352,36 +372,34 @@ static OpDefinition::DataTypes T = {DataType::FLOAT16, DataType::FLOAT};
 
 static OpDefinition l1DistanceOpDef({OpDefinition::Inputs({{"a", T}, {"b", T}}),
                                      OpDefinition::Outputs({{"output", T}}),
-                                     OpDefinition::Attributes()});
+                                     OpDefinition::Attributes({{"root_path", {"string"}}})});
 
 static popart::OpCreator<L1DistanceOp> l1DistanceOpCreator(
-    popart::OpDefinitions({{CustomOperators::L1DistanceId, l1DistanceOpDef}}),
+    popart::OpDefinitions({{L1DistanceId, l1DistanceOpDef}}),
     [](const popart::OpCreatorInfo& info) {
-        return std::make_unique<L1DistanceOp>(info.opid, info.settings);
+        auto rootPath = info.attributes.getAttribute<popart::Attributes::String>("root_path");
+        return std::make_unique<L1DistanceOp>(info.opid, info.settings, rootPath);
     },
     true);
 
 static OpDefinition l2DistanceOpDef({OpDefinition::Inputs({{"a", T}, {"b", T}}),
                                      OpDefinition::Outputs({{"output", T}}),
-                                     OpDefinition::Attributes()});
+                                     OpDefinition::Attributes({{"root_path", {"string"}}})});
 
 static popart::OpCreator<L2DistanceOp> l2DistanceOpCreator(
-    popart::OpDefinitions({{CustomOperators::L2DistanceId, l2DistanceOpDef}}),
+    popart::OpDefinitions({{L2DistanceId, l2DistanceOpDef}}),
     [](const popart::OpCreatorInfo& info) {
-        return std::make_unique<L2DistanceOp>(info.opid, info.settings);
+        auto rootPath = info.attributes.getAttribute<popart::Attributes::String>("root_path");
+        return std::make_unique<L2DistanceOp>(info.opid, info.settings, rootPath);
     },
     true);
-}  // namespace
-
-namespace pe = popops::expr;
 
 class L1DistanceOpx : public popart::popx::Opx {
    public:
     L1DistanceOpx(popart::Op* op, popart::popx::Devicex* devicex) : popart::popx::Opx(op, devicex) {
-        verifyOp<L1DistanceOp>(op, {CustomOperators::L1DistanceId});
+        verifyOp<L1DistanceOp>(op, {L1DistanceId});
         // add codelets to graph
-        graph().addCodelets(ROOT_PATH
-                            "/poptorch_experimental_addons/cpp/distance_matrix_codelet.cpp");
+        graph().addCodelets(getOp<L1DistanceOp>().rootPath + "/cpp/distance_matrix_codelet.cpp");
     }
 
     void grow(poplar::program::Sequence& prog) const final {
@@ -398,7 +416,7 @@ class L1DistanceGradOpx : public popart::popx::Opx {
    public:
     L1DistanceGradOpx(popart::Op* op, popart::popx::Devicex* devicex)
         : popart::popx::Opx(op, devicex) {
-        verifyOp<L1DistanceGradOp>(op, {CustomGradOperators::L1DistanceGradId});
+        verifyOp<L1DistanceGradOp>(op, {L1DistanceGradId});
     }
 
     void grow(poplar::program::Sequence& prog) const final {
@@ -417,10 +435,9 @@ class L1DistanceGradOpx : public popart::popx::Opx {
 class L2DistanceOpx : public popart::popx::Opx {
    public:
     L2DistanceOpx(popart::Op* op, popart::popx::Devicex* devicex) : popart::popx::Opx(op, devicex) {
-        verifyOp<L2DistanceOp>(op, {CustomOperators::L2DistanceId});
+        verifyOp<L2DistanceOp>(op, {L2DistanceId});
         // add codelets to graph
-        graph().addCodelets(ROOT_PATH
-                            "/poptorch_experimental_addons/cpp/distance_matrix_codelet.cpp");
+        graph().addCodelets(getOp<L2DistanceOp>().rootPath + "/cpp/distance_matrix_codelet.cpp");
     }
 
     void grow(poplar::program::Sequence& prog) const final {
@@ -437,7 +454,7 @@ class L2DistanceGradOpx : public popart::popx::Opx {
    public:
     L2DistanceGradOpx(popart::Op* op, popart::popx::Devicex* devicex)
         : popart::popx::Opx(op, devicex) {
-        verifyOp<L2DistanceGradOp>(op, {CustomGradOperators::L2DistanceGradId});
+        verifyOp<L2DistanceGradOp>(op, {L2DistanceGradId});
     }
 
     void grow(poplar::program::Sequence& prog) const final {
@@ -456,43 +473,14 @@ class L2DistanceGradOpx : public popart::popx::Opx {
 };
 
 L1DistanceGradOp::L1DistanceGradOp(const L1DistanceOp& fwdOp)
-    : popart::Op(CustomGradOperators::L1DistanceGradId, fwdOp.settings) {}
-
-const std::vector<popart::GradInOutMapper>& L1DistanceGradOp::gradInputInfo() const {
-    static const std::vector<popart::GradInOutMapper> inInfo = {
-        {0, 0, popart::GradOpInType::GradOut},
-        {1, 0, popart::GradOpInType::In},
-        {2, 1, popart::GradOpInType::In}};
-    return inInfo;
-}
+    : popart::Op(L1DistanceGradId, fwdOp.settings) {}
 
 L2DistanceGradOp::L2DistanceGradOp(const L2DistanceOp& fwdOp)
-    : popart::Op(CustomGradOperators::L2DistanceGradId, fwdOp.settings) {}
+    : popart::Op(L2DistanceGradId, fwdOp.settings) {}
 
-const std::vector<popart::GradInOutMapper>& L2DistanceGradOp::gradInputInfo() const {
-    static const std::vector<popart::GradInOutMapper> inInfo = {
-        {0, 0, popart::GradOpInType::GradOut},
-        {1, 0, popart::GradOpInType::In},
-        {2, 1, popart::GradOpInType::In},
-        {3, 0, popart::GradOpInType::Out}};
-    return inInfo;
-}
+static popart::popx::OpxCreator<L1DistanceOpx> L1DistanceOpxCreator({L1DistanceId});
+static popart::popx::OpxCreator<L1DistanceGradOpx> L1DistanceGradOpxCreator({L1DistanceGradId});
+static popart::popx::OpxCreator<L2DistanceOpx> L2DistanceOpxCreator({L2DistanceId});
+static popart::popx::OpxCreator<L2DistanceGradOpx> L2DistanceGradOpxCreator({L2DistanceGradId});
 
-// The Grad Op has 1 output, which is the gradient of the only input
-const std::map<int, int>& L1DistanceGradOp::gradOutToNonGradIn() const {
-    static const std::map<int, int> outInfo = {{0, 0}, {1, 1}};
-    return outInfo;
-}
-const std::map<int, int>& L2DistanceGradOp::gradOutToNonGradIn() const {
-    static const std::map<int, int> outInfo = {{0, 0}, {1, 1}};
-    return outInfo;
-}
-
-static popart::popx::OpxCreator<L1DistanceOpx> L1DistanceOpxCreator(
-    {CustomOperators::L1DistanceId});
-static popart::popx::OpxCreator<L1DistanceGradOpx> L1DistanceGradOpxCreator(
-    {CustomGradOperators::L1DistanceGradId});
-static popart::popx::OpxCreator<L2DistanceOpx> L2DistanceOpxCreator(
-    {CustomOperators::L2DistanceId});
-static popart::popx::OpxCreator<L2DistanceGradOpx> L2DistanceGradOpxCreator(
-    {CustomGradOperators::L2DistanceGradId});
+}  // namespace

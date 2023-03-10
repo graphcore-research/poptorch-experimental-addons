@@ -1,6 +1,5 @@
 # Copyright (c) 2023 Graphcore Ltd. All rights reserved.
 
-import site
 import subprocess
 from pathlib import Path
 
@@ -15,13 +14,11 @@ class make_ext(setuptools.command.build_ext.build_ext):  # type:ignore[misc]
                 self.get_ext_fullname(ext.name)
             )
             objdir = filename.with_suffix("")
-            root_path = site.getsitepackages()[0]
             subprocess.check_call(
                 [
                     "make",
                     f"OUT={filename}",
                     f"OBJDIR={objdir}",
-                    f"ROOT_PATH={root_path}",
                 ]
             )
         else:
