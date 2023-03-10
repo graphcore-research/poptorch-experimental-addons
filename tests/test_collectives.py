@@ -30,7 +30,7 @@ class _CollectiveCrossReplicaTester(torch.nn.Module):
         self,
         X: torch.Tensor,
         replication_factor: int,
-        cross_replica_op: Callable,
+        cross_replica_op: Callable[[torch.Tensor], torch.Tensor],
     ):
         super().__init__()
         self.X = nn.Parameter(
@@ -46,7 +46,7 @@ class _CollectiveCrossReplicaTester(torch.nn.Module):
 
 class _CollectiveSimulator(torch.nn.Module):
     def __init__(
-        self, X: torch.Tensor, replication_factor: int, simulator_op: Callable
+        self, X: torch.Tensor, replication_factor: int, simulator_op: Callable[[torch.Tensor], torch.Tensor]
     ):
         super().__init__()
         self.X = nn.Parameter(
@@ -81,7 +81,7 @@ def generate_input() -> torch.Tensor:
 
 
 def simulate_collective(
-    X: torch.Tensor, op: Callable, num_ipus: int
+    X: torch.Tensor, op: Callable[[torch.Tensor], torch.Tensor], num_ipus: int
 ) -> Tuple[Any, Any, Any]:
     sim = _CollectiveSimulator(
         deepcopy(X), replication_factor=num_ipus, simulator_op=op
@@ -93,7 +93,7 @@ def simulate_collective(
     optimizer.zero_grad()
     out, loss = sim()
     loss.mean().backward()
-    grad = einops.rearrange(sim.X.grad, "r n d -> (r n) d")  # type: ignore
+    grad = einops.rearrange(sim.X.grad, "r n d -> (r n) d") 
     optimizer.step()
     if op == _all_gather_simulator_op:
         grad *= num_ipus  # type: ignore
@@ -101,7 +101,7 @@ def simulate_collective(
 
 
 def run_collective(
-    X: torch.Tensor, op: Callable, num_ipus: int
+    X: torch.Tensor, op: Callable[[torch.Tensor], torch.Tensor], num_ipus: int
 ) -> Tuple[Any, Any, Any]:
     options = poptorch.Options()
     options.replicationFactor(num_ipus)
@@ -123,7 +123,7 @@ def run_collective(
 
 
 @pytest.mark.parametrize("op", list(_op_mapping.keys()))
-def test_collective(op: Callable) -> None:
+def test_collective(op: Callable[[torch.Tensor], torch.Tensor]) -> None:
     X = generate_input()
     num_ipus = 2
     actual = run_collective(X, op, num_ipus)
