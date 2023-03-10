@@ -91,6 +91,14 @@ def format(check: bool) -> None:
     """autoformat all sources"""
     run(["python", "-m", "black", "--check" if check else None, *PYTHON_ROOTS])
     run(["python", "-m", "isort", "--check" if check else None, *PYTHON_ROOTS])
+    cpp_files = Path("poptorch_experimental_addons/cpp").glob("**/*.[ch]pp")
+    run(
+        [
+            "clang-format",
+            *(["-Werror", "--dry-run"] if check else ["-i"]),
+            *map(str, cpp_files),
+        ]
+    )
 
 
 @cli()
