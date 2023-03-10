@@ -1,8 +1,9 @@
 # Copyright (c) 2023 Graphcore Ltd. All rights reserved.
 
+from typing import List
+
 import torch.nn as nn
 from poptorch.enums import CommGroupType, VariableRetrievalMode
-from typing import List
 
 
 def _apply_replica_grouping(

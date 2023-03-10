@@ -3,17 +3,18 @@
 from copy import deepcopy
 from enum import Enum
 from functools import partial
-from typing import Any, Callable, Tuple, Dict
+from typing import Any, Callable, Dict, Tuple
 
 import einops
 import poptorch
 import pytest
 import torch
 import torch.nn as nn
-from . import utils
 from poptorch.enums import CommGroupType
 
 import poptorch_experimental_addons as pea
+
+from . import utils
 
 assert_close = torch.testing.assert_close  # type:ignore[attr-defined]
 

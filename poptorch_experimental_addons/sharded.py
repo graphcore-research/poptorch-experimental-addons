@@ -1,9 +1,11 @@
 # Copyright (c) 2023 Graphcore Ltd. All rights reserved.
 
-import torch
-import einops
-from .collectives import all_gather_cross_replica, all_reduce_cross_replica_sum
 from typing import Any
+
+import einops
+import torch
+
+from .collectives import all_gather_cross_replica, all_reduce_cross_replica_sum
 
 
 def rowcolrow_sharded_matmul(
