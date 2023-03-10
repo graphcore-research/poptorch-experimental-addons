@@ -108,7 +108,7 @@ class _ShardedMatmulTester(torch.nn.Module):
         X: torch.Tensor,
         Y: torch.Tensor,
         replication_factor: int,
-        sharded_op: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
+        sharded_op: Callable[[Any], torch.Tensor],
     ):
         super().__init__()
         self.X_sharding, self.Y_sharding, self.out_sharding = _op_mapping[sharded_op][
@@ -125,7 +125,9 @@ class _ShardedMatmulTester(torch.nn.Module):
         self.sharded_op = sharded_op
 
     def forward(self) -> Tuple[Any, Any]:
-        out = self.sharded_op(self.X, self.Y, self.replication_factor, **self.op_kwargs)
+        out = self.sharded_op(
+            self.X, self.Y, self.replication_factor, **self.op_kwargs
+        )  # type: ignore
         return out, poptorch.identity_loss(out**2, reduction="mean")
 
 
@@ -135,7 +137,7 @@ class _ShardedMatmulSimulator(torch.nn.Module):
         X: torch.Tensor,
         Y: torch.Tensor,
         replication_factor: int,
-        sharded_op: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
+        sharded_op: Callable[[Any], torch.Tensor],
     ):
         super().__init__()
         self.X_sharding, self.Y_sharding, self.out_sharding = _op_mapping[sharded_op][
@@ -168,7 +170,7 @@ def generate_inputs() -> Tuple[torch.Tensor, torch.Tensor]:
 
 
 def simulate_sharded_matmul(
-    X: torch.Tensor, Y: torch.Tensor, op: Callable[[torch.Tensor, torch.Tensor], torch.Tensor], num_ipus: int
+    X: torch.Tensor, Y: torch.Tensor, op: Callable[[Any], torch.Tensor], num_ipus: int
 ) -> Tuple[Any, Any, Any, Any, Any]:
     simulator = _ShardedMatmulSimulator(
         deepcopy(X),
@@ -208,7 +210,7 @@ def simulate_sharded_matmul(
 
 
 def run_sharded_matmul(
-    X: torch.Tensor, Y: torch.Tensor, op: Callable[[torch.Tensor, torch.Tensor], torch.Tensor], num_ipus: int
+    X: torch.Tensor, Y: torch.Tensor, op: Callable[[Any], torch.Tensor], num_ipus: int
 ) -> Tuple[Any, Any, Any, Any, Any]:
     options = poptorch.Options()
     options.replicationFactor(num_ipus)
@@ -236,7 +238,7 @@ def run_sharded_matmul(
 
 
 @pytest.mark.parametrize("op", list(_op_mapping.keys()))
-def test_sharded_matmul(op: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]) -> None:
+def test_sharded_matmul(op: Callable[[Any], torch.Tensor]) -> None:
     X, Y = generate_inputs()
     num_ipus = 2
     actual = run_sharded_matmul(X, Y, op, num_ipus)

@@ -5,6 +5,7 @@ import einops
 from .collectives import all_gather_cross_replica, all_reduce_cross_replica_sum
 from typing import Any
 
+
 def rowcolrow_sharded_matmul(
     X: torch.Tensor, Y: torch.Tensor, replication_factor: int, num_chunks: int = 1
 ) -> Any:
