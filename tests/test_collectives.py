@@ -87,16 +87,16 @@ def simulate_collective(
         deepcopy(X), replication_factor=num_ipus, simulator_op=op
     )
     lr = 1.0
-    # if op == _all_reduce_simulator_op:
-    #     lr /= num_ipus
+    if op == _all_reduce_simulator_op:
+        lr /= num_ipus
     optimizer = torch.optim.SGD(sim.parameters(), lr=lr)
     optimizer.zero_grad()
     out, loss = sim()
-    loss.sum().backward()
+    loss.mean().backward()
     grad = einops.rearrange(sim.X.grad, "r n d -> (r n) d")  # type: ignore
     optimizer.step()
-    # if op == _all_gather_simulator_op:
-    #     grad *= num_ipus  # type: ignore
+    if op == _all_gather_simulator_op:
+        grad *= num_ipus  # type: ignore
     return out, grad, sim.X.data
 
 
@@ -109,9 +109,6 @@ def run_collective(
     options.useIpuModel(True)
     options.anchorTensor("grad_X", "Gradient___X")
     options._Popart.setPatterns({"OpToIdentity": True})
-    options.Training.accumulation_and_replication_reduction_type = (
-        poptorch.ReductionType.Sum
-    )
 
     col = _CollectiveCrossReplicaTester(
         X, replication_factor=num_ipus, cross_replica_op=op
@@ -131,6 +128,7 @@ def test_collective(op: Callable) -> None:
     num_ipus = 2
     actual = run_collective(X, op, num_ipus)
     expected = simulate_collective(X, _op_mapping[op], num_ipus)
+    breakpoint()
     list(map(assert_close, actual, expected))
 
 
