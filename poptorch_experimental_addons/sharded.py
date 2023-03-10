@@ -1,6 +1,5 @@
 # Copyright (c) 2023 Graphcore Ltd. All rights reserved.
 
-from numpy import insert
 import torch
 import einops
 from .collectives import all_gather_cross_replica, all_reduce_cross_replica_sum
