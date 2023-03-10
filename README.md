@@ -26,7 +26,7 @@ import poptorch_experimental_addons as pea
 | API | Description | Note |
 | --- | --- | --- |
 | [`pea.autograd_proxy`](https://graphcore-research.github.io/poptorch-experimental-addons/index.html#poptorch_experimental_addons.autograd_proxy) | Custom gradients using a proxy tensor | |
-| [`pea.distance_matrix`](https://graphcore-research.github.io/poptorch-experimental-addons/index.html#poptorch_experimental_addons.distance_matrix) | Pairwise broadcasted distance between two collections of vectors | Supports only L1/L2 distances on IPU
+| [`pea.distance_matrix`](https://graphcore-research.github.io/poptorch-experimental-addons/index.html#poptorch_experimental_addons.distance_matrix) | Pairwise broadcasted distance between two collections of vectors | Supports only L1/L2 distances on IPU |
 | [`pea.collectives`](https://graphcore-research.github.io/poptorch-experimental-addons/collectives.html) | Collectives across IPU program replicas | All-gather |
 | [`pea.sparse`](https://graphcore-research.github.io/poptorch-experimental-addons/sparse.html) | Static sparse-dense matmul (forward pass only) | Functions and modules for weight-sparse inference |
 
@@ -63,8 +63,8 @@ Note:
  - `./dev tests -k PATTERN` runs selected tests matching `PATTERN`
  - `./dev python ...` runs under Python, after building the native lib & setting `PYTHONPATH`
  - When adding `.cpp` files, they should also be added to `OBJECTS` in [Makefile](Makefile)
- - Codelets should have names of form `*_codelet.cpp`. They don't need to be added to `OBJECTS` and can be 
- included by custom ops using `graph.addCodelets(ROOT_PATH "/poptorch_experimental_addons/cpp/*_codelet.cpp")`
+ - Custom codelets should have names of form `*_codelet.cpp`. They don't need to be added to `OBJECTS`; see
+ [here](poptorch_experimental_addons/cpp/distance_matrix.cpp#L440) for an example of how to include them in custom ops.
  - When extending impl modules, note that we use `__all__` to control the public API
 
 
