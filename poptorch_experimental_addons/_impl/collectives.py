@@ -42,7 +42,7 @@ def all_gather_cross_replica_identical_grads_in(
     return out
 
 
-def all_gather_cross_replica(x: torch.Tensor, replication_factor: int):
+def all_gather_cross_replica(x: torch.Tensor, replication_factor: int) -> Any:
     """
     All-gather across IPU program replicas.
 
