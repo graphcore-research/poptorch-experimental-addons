@@ -24,10 +24,10 @@ def run_forward_and_backward(
             for k, v in args.items():
                 self.register_parameter(k, nn.Parameter(v.clone()))
 
-        def forward(self) -> Tensor:
+        def forward(self) -> Dict[str, Tensor]:
             output = fn(**{k: getattr(self, k) for k in args})
             loss: Tensor = poptorch.identity_loss(output, reduction="sum")
-            return loss
+            return dict(output=output, loss=loss)
 
     module = TestModule()
     optimiser = torch.optim.SGD(module.parameters(), 1.0)
@@ -41,10 +41,10 @@ def run_forward_and_backward(
     else:
         optimiser.zero_grad()
         output = module()
-        output.backward()
+        output["loss"].backward()
         optimiser.step()
     return dict(
-        output=output,
+        **output,
         **{f"grad_{k}": args[k] - getattr(module, k).detach() for k in args},
     )
 
@@ -57,5 +57,30 @@ def test_autograd_proxy(device: str) -> None:
         patterns=dict(AutogradProxyOpPattern=True),
         device=device,
     )
-    assert_close(outputs["output"], torch.tensor(6.0))
+    assert_close(outputs["loss"], torch.tensor(6.0))
     assert_close(outputs["grad_x"], torch.tensor(3.0))
+
+
+@pytest.mark.parametrize("p", [1, 2])
+def test_distance_matrix(p: int) -> None:
+    torch.manual_seed(1234)
+    M, N, K = 10, 30, 50
+    tensor1 = 10 + 20 * torch.randn(size=(M, K), dtype=torch.float32)
+    tensor2 = -10 + 10 * torch.randn(size=(N, K), dtype=torch.float32)
+
+    output_ipu = run_forward_and_backward(
+        lambda tensor1, tensor2: pea.distance_matrix(tensor1, tensor2, p),
+        dict(tensor1=tensor1, tensor2=tensor2),
+        patterns={},
+        device="ipu",
+    )
+    output_torch = run_forward_and_backward(
+        lambda tensor1, tensor2: torch.cdist(tensor1, tensor2, p),
+        dict(tensor1=tensor1, tensor2=tensor2),
+        patterns={},
+        device="cpu",
+    )
+
+    assert_close(output_ipu["output"], output_torch["output"])
+    assert_close(output_ipu["grad_tensor1"], output_torch["grad_tensor1"])
+    assert_close(output_ipu["grad_tensor2"], output_torch["grad_tensor2"])

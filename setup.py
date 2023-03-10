@@ -14,7 +14,13 @@ class make_ext(setuptools.command.build_ext.build_ext):  # type:ignore[misc]
                 self.get_ext_fullname(ext.name)
             )
             objdir = filename.with_suffix("")
-            subprocess.check_call(["make", f"OUT={filename}", f"OBJDIR={objdir}"])
+            subprocess.check_call(
+                [
+                    "make",
+                    f"OUT={filename}",
+                    f"OBJDIR={objdir}",
+                ]
+            )
         else:
             super().build_extension(ext)
 
@@ -29,5 +35,6 @@ setuptools.setup(
             list(map(str, Path("poptorch_experimental_addons/cpp").glob("*.[ch]pp"))),
         )
     ],
+    package_data={"poptorch_experimental_addons": ["cpp/*_codelet.cpp"]},
     cmdclass=dict(build_ext=make_ext),
 )
