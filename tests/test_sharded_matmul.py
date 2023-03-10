@@ -241,7 +241,6 @@ def test_sharded_matmul(op: Callable) -> None:
     num_ipus = 2
     actual = run_sharded_matmul(X, Y, op, num_ipus)
     expected = simulate_sharded_matmul(X, Y, op, num_ipus)
-    breakpoint()
     list(map(assert_close, actual, expected))
 
 
