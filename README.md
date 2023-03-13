@@ -25,10 +25,10 @@ import poptorch_experimental_addons as pea
 
 | API | Description | Note |
 | --- | --- | --- |
-| [`pea.autograd_proxy`](https://graphcore-research.github.io/poptorch-experimental-addons/index.html#poptorch_experimental_addons.autograd_proxy) | Custom gradients using a proxy tensor | |
+| [`pea.autograd_proxy`](https://graphcore-research.github.io/poptorch-experimental-addons/index.html#poptorch_experimental_addons.autograd_proxy) | Custom gradients using a proxy tensor | Example: [straight_through_estimator.py](examples/straight_through_estimator.py) |
 | [`pea.distance_matrix`](https://graphcore-research.github.io/poptorch-experimental-addons/index.html#poptorch_experimental_addons.distance_matrix) | Pairwise broadcasted distance between two collections of vectors | Supports only L1/L2 distances on IPU |
 | [`pea.collectives`](https://graphcore-research.github.io/poptorch-experimental-addons/collectives.html) | Collectives across IPU program replicas | All-gather |
-| [`pea.sparse`](https://graphcore-research.github.io/poptorch-experimental-addons/sparse.html) | Static sparse-dense matmul (forward pass only) | Functions and modules for weight-sparse inference |
+| [`pea.sparse`](https://graphcore-research.github.io/poptorch-experimental-addons/sparse.html) | Static sparse-dense matmul (forward pass only) | Example: [sparse_benchmark_spmm.py](examples/sparse_benchmark_spmm.py) |
 
 
 ## Development
