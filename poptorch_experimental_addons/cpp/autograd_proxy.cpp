@@ -124,7 +124,10 @@ struct Pattern : popart::PreAliasPattern {
     }
 
     bool apply(popart::Op* op) const override {
-        if (op->getIr().hasConstructedBackwards() && op->hasInput(1)) {
+        auto waitForBackwards =
+            (op->getIr().getExecutionMode() == popart::Ir::ExecutionMode::Training) &&
+            !op->getIr().hasConstructedBackwards();
+        if (op->hasInput(1) && !waitForBackwards) {
             op->disconnectInTensor(1);
             return true;
         }
@@ -132,6 +135,6 @@ struct Pattern : popart::PreAliasPattern {
     }
 };
 
-static popart::PatternCreator<Pattern> patternCreator("AutogradProxyOpPattern", false);
+popart::PatternCreator<Pattern> patternCreator("AutogradProxyOpPattern", true);
 
 }  // namespace

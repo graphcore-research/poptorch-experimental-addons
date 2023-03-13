@@ -51,7 +51,7 @@ PYTHON_ROOTS = ["poptorch_experimental_addons", "examples", "tests", "dev", "set
 @cli()
 def build() -> None:
     """build C++ shared library"""
-    run(["make"])
+    run(["make", "-j"])
 
 
 @cli("-k", "--filter")
