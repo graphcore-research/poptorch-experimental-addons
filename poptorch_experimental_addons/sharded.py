@@ -48,7 +48,9 @@ def rowcolrow_sharded_matmul(
 def repcolcol_sharded_matmul(
     X: torch.Tensor, Y: torch.Tensor, replication_factor: int
 ) -> Any:
-    """Matrix multiplication for replicated x column-sharded -> column-sharded tensors"""
+    """
+    Matrix multiplication for replicated x column-sharded -> column-sharded tensors
+    """
     X = all_reduce_cross_replica_sum(X, replication_factor, insert_in_grad_graph=True)
     return X @ Y
 
