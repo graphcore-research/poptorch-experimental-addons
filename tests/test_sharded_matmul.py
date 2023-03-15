@@ -25,6 +25,11 @@ class Sharding(Enum):
     Column = 3
 
 
+class SimulatorMode(Enum):
+    IPU = 0
+    Base = 1
+
+
 def _rowcolrow_simulator(
     X: torch.Tensor, Y: torch.Tensor, replication_factor: int, num_chunks: int
 ) -> torch.Tensor:
@@ -43,7 +48,7 @@ def _rowcolrow_simulator(
     for i in range(num_chunks):
         Yg = Y[:, :, i]
         Yg = einops.repeat(Yg, "s c n -> r s c n", r=replication_factor)
-        Yg = einops.rearrange(Yg, "r s c n -> r c (n s)")
+        Yg = einops.rearrange(Yg, "r s c n -> r c (s n)")
         Xp = X[:, :, i]
         out += Xp @ Yg
     return out
@@ -77,9 +82,9 @@ _sharding_transform_map: Dict[Any, Any] = {
         "out_test": lambda x, r: x,
     },
     Sharding.Column: {
-        "in": partial(einops.rearrange, pattern="d (m r) -> r d m"),
-        "out_sim": partial(einops.rearrange, pattern="r d m -> d (m r)"),
-        "out_test": partial(einops.rearrange, pattern="(r d) m -> d (m r)"),
+        "in": partial(einops.rearrange, pattern="d (r m) -> r d m"),
+        "out_sim": partial(einops.rearrange, pattern="r d m -> d (r m)"),
+        "out_test": partial(einops.rearrange, pattern="(r d) m -> d (r m)"),
     },
 }
 
@@ -139,6 +144,7 @@ class _ShardedMatmulSimulator(torch.nn.Module):
         Y: torch.Tensor,
         replication_factor: int,
         sharded_op: Callable[[Any], torch.Tensor],
+        mode: SimulatorMode = SimulatorMode.IPU,
     ):
         super().__init__()
         self.X_sharding, self.Y_sharding, self.out_sharding = _op_mapping[sharded_op][
@@ -154,13 +160,28 @@ class _ShardedMatmulSimulator(torch.nn.Module):
         self.replication_factor = replication_factor
         self.op_kwargs = _op_mapping[sharded_op]["kwargs"]
         self.simulator_op = simulator_op
+        self.mode = mode
 
     def forward(self) -> Tuple[Any, Any]:
         out = self.simulator_op(
             self.X, self.Y, self.replication_factor, **self.op_kwargs
         )
         loss = out.pow(2).mean(dim=list(range(out.ndim))[1:])
-        return torch.vstack([*out]), loss
+        if self.mode == SimulatorMode.IPU:
+            out = torch.vstack([*out])
+        elif self.mode == SimulatorMode.Base:
+            if self.out_sharding == Sharding.Column:
+                out = einops.rearrange(
+                    out, "r m n -> m (r n)", r=self.replication_factor
+                )
+            elif self.out_sharding == Sharding.Row:
+                pass
+                out = einops.rearrange(
+                    out, "r m n -> (r m) n", r=self.replication_factor
+                )
+            elif self.out_sharding == Sharding.Replicated:
+                out = out[0]
+        return out, loss
 
 
 def generate_inputs() -> Tuple[torch.Tensor, torch.Tensor]:
@@ -241,14 +262,27 @@ def run_sharded_matmul(
 @pytest.mark.parametrize("op", list(_op_mapping.keys()))
 def test_sharded_matmul(op: Callable[[Any], torch.Tensor]) -> None:
     X, Y = generate_inputs()
-    out = X @ Y
     num_ipus = 2
     actual = run_sharded_matmul(X, Y, op, num_ipus)
     expected = simulate_sharded_matmul(X, Y, op, num_ipus)
-    assert_close(out, expected[0])
-    assert_close(out, actual[0])
     list(map(assert_close, actual, expected))
 
 
+@pytest.mark.parametrize("op", list(_op_mapping.keys()))
+def test_simulator(op: Callable[[Any], torch.Tensor]) -> None:
+    X, Y = generate_inputs()
+    out_base = X @ Y
+    num_ipus = 2
+    simulator = _ShardedMatmulSimulator(
+        deepcopy(X),
+        deepcopy(Y),
+        replication_factor=num_ipus,
+        sharded_op=op,
+        mode=SimulatorMode.Base,
+    )
+    out_sim, _ = simulator()
+    assert_close(out_sim, out_base)
+
+
 if __name__ == "__main__":
-    test_sharded_matmul(pea.sharded.rowcolrow_sharded_matmul)
+    test_sharded_matmul(pea.sharded.colrowrep_sharded_matmul)

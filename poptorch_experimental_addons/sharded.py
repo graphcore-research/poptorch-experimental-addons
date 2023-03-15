@@ -25,7 +25,7 @@ def rowcolrow_sharded_matmul(
     X: torch.Tensor, Y: torch.Tensor, replication_factor: int, num_chunks: int = 1
 ) -> Any:
     """
-    Matrix multiplation for row-sharded x column-sharded -> row-sharded tensors
+    Matrix multiplication for row-sharded x column-sharded -> row-sharded tensors
 
     Gathers the right multiplicand across IPU program replicas
     """
@@ -39,7 +39,7 @@ def rowcolrow_sharded_matmul(
         Yg = all_gather_cross_replica(
             torch.index_select(Y, dim=1, index=index).squeeze(), replication_factor
         )
-        Yg = einops.rearrange(Yg, "r c n -> c (n r)")
+        Yg = einops.rearrange(Yg, "r c n -> c (r n)")
         Xp = torch.index_select(X, dim=1, index=index).squeeze()
         result += Xp @ Yg
     return result
@@ -48,7 +48,7 @@ def rowcolrow_sharded_matmul(
 def repcolcol_sharded_matmul(
     X: torch.Tensor, Y: torch.Tensor, replication_factor: int
 ) -> Any:
-    """Matrix multiplation for replicated x column-sharded -> column-sharded tensors"""
+    """Matrix multiplication for replicated x column-sharded -> column-sharded tensors"""
     X = all_reduce_cross_replica_sum(X, replication_factor, insert_in_grad_graph=True)
     return X @ Y
 
@@ -56,6 +56,6 @@ def repcolcol_sharded_matmul(
 def colrowrep_sharded_matmul(
     X: torch.Tensor, Y: torch.Tensor, replication_factor: int
 ) -> Any:
-    """Matrix multiplation for row-sharded x column-sharded -> replicated tensors"""
+    """Matrix multiplication for row-sharded x column-sharded -> replicated tensors"""
     out = X @ Y
     return all_reduce_cross_replica_sum(out, replication_factor)
