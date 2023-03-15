@@ -52,7 +52,7 @@ def all_gather_cross_replica(x: torch.Tensor, replication_factor: int) -> Any:
     returns --  shape (replication_factor, *)
     """
     x = all_gather_cross_replica_identical_grads_in(x, replication_factor)
-    x = all_reduce_cross_replica_sum(x, replication_factor, True)
+    x = all_reduce_cross_replica_sum(x, replication_factor, insert_in_grad_graph=True)
     return x
 
 

@@ -1,5 +1,18 @@
 # Copyright (c) 2023 Graphcore Ltd. All rights reserved.
 
+"""
+A collection of functions to support sharded matrix multiplications under a variety
+of different sharded tensor constraints.
+
+Only 1-D tensor sharding is currently supported in poptorch.
+
+Note: functions names use convention {in1}{in2}{out}_sharded_matmul where {...} can
+evaluate to:
+- rep: replicated
+- col: column-sharded
+- row: row-sharded
+"""
+
 from typing import Any
 
 import einops

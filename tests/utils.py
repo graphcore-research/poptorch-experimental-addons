@@ -12,6 +12,7 @@ def _apply_replica_grouping(
     shards: int,
     excluded_parameters: List[str] = [],
 ) -> nn.Module:
+    assert not set(excluded_parameters) - set(model.state_dict().keys())
     for n, _ in model.named_parameters():
         if n not in excluded_parameters:
             model.per_replica_params[n] = (  # type: ignore

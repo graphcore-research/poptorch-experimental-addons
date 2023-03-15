@@ -241,9 +241,12 @@ def run_sharded_matmul(
 @pytest.mark.parametrize("op", list(_op_mapping.keys()))
 def test_sharded_matmul(op: Callable[[Any], torch.Tensor]) -> None:
     X, Y = generate_inputs()
+    out = X @ Y
     num_ipus = 2
     actual = run_sharded_matmul(X, Y, op, num_ipus)
     expected = simulate_sharded_matmul(X, Y, op, num_ipus)
+    assert_close(out, expected[0])
+    assert_close(out, actual[0])
     list(map(assert_close, actual, expected))
 
 
