@@ -70,7 +70,7 @@ def _load_native_library() -&gt; None:
 
 _load_native_library()
 
-from . import collectives, sparse  # NOQA:F401,E402
+from . import collectives, sharded, sparse  # NOQA:F401,E402
 from ._impl.core import *  # NOQA:F401,E402,F403
 from ._impl.core import __all__  # NOQA:F401,E402</code></pre>
 </details>
@@ -81,6 +81,11 @@ from ._impl.core import __all__  # NOQA:F401,E402</code></pre>
 <dt><code class="name"><a title="poptorch_experimental_addons.collectives" href="collectives.html">poptorch_experimental_addons.collectives</a></code></dt>
 <dd>
 <div class="desc"><p>Primitives for collective communication across IPU clusters.</p></div>
+</dd>
+<dt><code class="name"><a title="poptorch_experimental_addons.sharded" href="sharded.html">poptorch_experimental_addons.sharded</a></code></dt>
+<dd>
+<div class="desc"><p>A collection of functions to support sharded matrix multiplications under a variety
+of different sharded tensor constraints …</p></div>
 </dd>
 <dt><code class="name"><a title="poptorch_experimental_addons.sparse" href="sparse.html">poptorch_experimental_addons.sparse</a></code></dt>
 <dd>
@@ -222,6 +227,7 @@ shape (M, N)</p></div>
 <li><h3><a href="#header-submodules">Sub-modules</a></h3>
 <ul>
 <li><code><a title="poptorch_experimental_addons.collectives" href="collectives.html">poptorch_experimental_addons.collectives</a></code></li>
+<li><code><a title="poptorch_experimental_addons.sharded" href="sharded.html">poptorch_experimental_addons.sharded</a></code></li>
 <li><code><a title="poptorch_experimental_addons.sparse" href="sparse.html">poptorch_experimental_addons.sparse</a></code></li>
 </ul>
 </li>

@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.10.0" />
-<title>poptorch_experimental_addons.collectives API documentation</title>
-<meta name="description" content="Primitives for collective communication across IPU clusters." />
+<title>poptorch_experimental_addons.sharded API documentation</title>
+<meta name="description" content="A collection of functions to support sharded matrix multiplications under a variety
+of different sharded tensor constraints …" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -19,18 +20,84 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>poptorch_experimental_addons.collectives</code></h1>
+<h1 class="title">Module <code>poptorch_experimental_addons.sharded</code></h1>
 </header>
 <section id="section-intro">
-<p>Primitives for collective communication across IPU clusters.</p>
+<p>A collection of functions to support sharded matrix multiplications under a variety
+of different sharded tensor constraints.</p>
+<p>Only 1-D tensor sharding is currently supported in poptorch.</p>
+<p>Note: functions names use convention {in1}{in2}{out}_sharded_matmul where {&hellip;} can
+evaluate to:
+- rep: replicated
+- col: column-sharded
+- row: row-sharded</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python"># Copyright (c) 2023 Graphcore Ltd. All rights reserved.
 
-from ._impl.collectives import *  # NOQA:F401,F403
-from ._impl.collectives import __all__, __doc__  # NOQA:F401</code></pre>
+&#34;&#34;&#34;
+A collection of functions to support sharded matrix multiplications under a variety
+of different sharded tensor constraints.
+
+Only 1-D tensor sharding is currently supported in poptorch.
+
+Note: functions names use convention {in1}{in2}{out}_sharded_matmul where {...} can
+evaluate to:
+- rep: replicated
+- col: column-sharded
+- row: row-sharded
+&#34;&#34;&#34;
+
+from typing import Any
+
+import einops
+import torch
+
+from .collectives import all_gather_cross_replica, all_reduce_cross_replica_sum
+
+
+def rowcolrow_sharded_matmul(
+    X: torch.Tensor, Y: torch.Tensor, replication_factor: int, num_chunks: int = 1
+) -&gt; Any:
+    &#34;&#34;&#34;
+    Matrix multiplication for row-sharded x column-sharded -&gt; row-sharded tensors
+
+    Gathers the right multiplicand across IPU program replicas
+    &#34;&#34;&#34;
+    X_local_outer_dim, _ = X.shape
+    _, Y_local_outer_dim = Y.shape
+    result = torch.zeros((X_local_outer_dim, Y_local_outer_dim * replication_factor))
+    X = einops.rearrange(X, &#34;m (k c) -&gt; m k c&#34;, k=num_chunks)
+    Y = einops.rearrange(Y, &#34;(k c) n -&gt; c k n&#34;, k=num_chunks)
+    for i in range(num_chunks):
+        index = torch.tensor([i])
+        Yg = all_gather_cross_replica(
+            torch.index_select(Y, dim=1, index=index).squeeze(), replication_factor
+        )
+        Yg = einops.rearrange(Yg, &#34;r c n -&gt; c (r n)&#34;)
+        Xp = torch.index_select(X, dim=1, index=index).squeeze()
+        result += Xp @ Yg
+    return result
+
+
+def repcolcol_sharded_matmul(
+    X: torch.Tensor, Y: torch.Tensor, replication_factor: int
+) -&gt; Any:
+    &#34;&#34;&#34;
+    Matrix multiplication for replicated x column-sharded -&gt; column-sharded tensors
+    &#34;&#34;&#34;
+    X = all_reduce_cross_replica_sum(X, replication_factor, insert_in_grad_graph=True)
+    return X @ Y
+
+
+def colrowrep_sharded_matmul(
+    X: torch.Tensor, Y: torch.Tensor, replication_factor: int
+) -&gt; Any:
+    &#34;&#34;&#34;Matrix multiplication for row-sharded x column-sharded -&gt; replicated tensors&#34;&#34;&#34;
+    out = X @ Y
+    return all_reduce_cross_replica_sum(out, replication_factor)</code></pre>
 </details>
 </section>
 <section>
@@ -40,118 +107,74 @@ from ._impl.collectives import __all__, __doc__  # NOQA:F401</code></pre>
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="poptorch_experimental_addons.collectives.all_gather_cross_replica"><code class="name flex">
-<span>def <span class="ident">all_gather_cross_replica</span></span>(<span>x: torch.Tensor, replication_factor: int) ‑> Any</span>
+<dt id="poptorch_experimental_addons.sharded.colrowrep_sharded_matmul"><code class="name flex">
+<span>def <span class="ident">colrowrep_sharded_matmul</span></span>(<span>X: torch.Tensor, Y: torch.Tensor, replication_factor: int) ‑> Any</span>
 </code></dt>
 <dd>
-<div class="desc"><p>All-gather across IPU program replicas.</p>
-<p>Gathers and stacks tensors occupying the same memory location across all IPUs</p>
-<p>x &ndash; shape (<em>)
-returns &ndash;
-shape (replication_factor, </em>)</p></div>
+<div class="desc"><p>Matrix multiplication for row-sharded x column-sharded -&gt; replicated tensors</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def all_gather_cross_replica(x: torch.Tensor, replication_factor: int) -&gt; Any:
-    &#34;&#34;&#34;
-    All-gather across IPU program replicas.
-
-    Gathers and stacks tensors occupying the same memory location across all IPUs
-
-    x -- shape (*)
-    returns --  shape (replication_factor, *)
-    &#34;&#34;&#34;
-    x = all_gather_cross_replica_identical_grads_in(x, replication_factor)
-    x = all_reduce_cross_replica_sum(x, replication_factor, insert_in_grad_graph=True)
-    return x</code></pre>
+<pre><code class="python">def colrowrep_sharded_matmul(
+    X: torch.Tensor, Y: torch.Tensor, replication_factor: int
+) -&gt; Any:
+    &#34;&#34;&#34;Matrix multiplication for row-sharded x column-sharded -&gt; replicated tensors&#34;&#34;&#34;
+    out = X @ Y
+    return all_reduce_cross_replica_sum(out, replication_factor)</code></pre>
 </details>
 </dd>
-<dt id="poptorch_experimental_addons.collectives.all_gather_cross_replica_identical_grads_in"><code class="name flex">
-<span>def <span class="ident">all_gather_cross_replica_identical_grads_in</span></span>(<span>x: torch.Tensor, replication_factor: int) ‑> Any</span>
+<dt id="poptorch_experimental_addons.sharded.repcolcol_sharded_matmul"><code class="name flex">
+<span>def <span class="ident">repcolcol_sharded_matmul</span></span>(<span>X: torch.Tensor, Y: torch.Tensor, replication_factor: int) ‑> Any</span>
 </code></dt>
 <dd>
-<div class="desc"><p>All-gather across IPU program replicas.</p>
-<p>Gathers and stacks tensors occupying the same memory location across all IPUs</p>
-<p>Gradient graph generated assumes gradient inputs are identical</p>
-<p>x &ndash; shape (<em>)
-returns &ndash;
-shape (replication_factor, </em>)</p></div>
+<div class="desc"><p>Matrix multiplication for replicated x column-sharded -&gt; column-sharded tensors</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def all_gather_cross_replica_identical_grads_in(
-    x: torch.Tensor, replication_factor: int
+<pre><code class="python">def repcolcol_sharded_matmul(
+    X: torch.Tensor, Y: torch.Tensor, replication_factor: int
 ) -&gt; Any:
     &#34;&#34;&#34;
-    All-gather across IPU program replicas.
-
-    Gathers and stacks tensors occupying the same memory location across all IPUs
-
-    Gradient graph generated assumes gradient inputs are identical
-
-    x -- shape (*)
-    returns --  shape (replication_factor, *)
+    Matrix multiplication for replicated x column-sharded -&gt; column-sharded tensors
     &#34;&#34;&#34;
-    x = _no_op_reshape(x)  # ensures grad of ReplicatedAllGather is reshaped
-    out = poptorch.custom_op(
-        [x],
-        name=&#34;ReplicatedAllGather&#34;,
-        domain=&#34;ai.graphcore&#34;,
-        domain_version=1,
-        example_outputs=[
-            torch.zeros(dtype=x.dtype, size=(replication_factor, *x.shape))
-        ],
-    )[0]
-    out = out.reshape(replication_factor, *x.shape)
-    return out</code></pre>
+    X = all_reduce_cross_replica_sum(X, replication_factor, insert_in_grad_graph=True)
+    return X @ Y</code></pre>
 </details>
 </dd>
-<dt id="poptorch_experimental_addons.collectives.all_reduce_cross_replica_sum"><code class="name flex">
-<span>def <span class="ident">all_reduce_cross_replica_sum</span></span>(<span>x: torch.Tensor, replication_factor: int, insert_in_grad_graph: bool = False) ‑> Any</span>
+<dt id="poptorch_experimental_addons.sharded.rowcolrow_sharded_matmul"><code class="name flex">
+<span>def <span class="ident">rowcolrow_sharded_matmul</span></span>(<span>X: torch.Tensor, Y: torch.Tensor, replication_factor: int, num_chunks: int = 1) ‑> Any</span>
 </code></dt>
 <dd>
-<div class="desc"><p>All-reduce across IPU program replicas</p>
-<p>Sums tensors occupying the same memory location across IPUs, resulting
-in replicated tensors.</p>
-<p>insert_in_grad_graph is a boolean argument that inserts the all_reduce in
-the gradient graph (backward pass) rather than the forward graph.</p>
-<p>x &ndash; shape (<em>)
-returns &ndash; shape (</em>)</p></div>
+<div class="desc"><p>Matrix multiplication for row-sharded x column-sharded -&gt; row-sharded tensors</p>
+<p>Gathers the right multiplicand across IPU program replicas</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def all_reduce_cross_replica_sum(
-    x: torch.Tensor, replication_factor: int, insert_in_grad_graph: bool = False
+<pre><code class="python">def rowcolrow_sharded_matmul(
+    X: torch.Tensor, Y: torch.Tensor, replication_factor: int, num_chunks: int = 1
 ) -&gt; Any:
     &#34;&#34;&#34;
-    All-reduce across IPU program replicas
+    Matrix multiplication for row-sharded x column-sharded -&gt; row-sharded tensors
 
-    Sums tensors occupying the same memory location across IPUs, resulting
-    in replicated tensors.
-
-    insert_in_grad_graph is a boolean argument that inserts the all_reduce in
-    the gradient graph (backward pass) rather than the forward graph.
-
-    x -- shape (*)
-    returns -- shape (*)
+    Gathers the right multiplicand across IPU program replicas
     &#34;&#34;&#34;
-    rg_info = [replication_factor, 1, replication_factor]
-    out = poptorch.custom_op(
-        [x],
-        name=&#34;ReplicatedAllReduceTP&#34;,
-        domain=&#34;ai.graphcore&#34;,
-        domain_version=1,
-        example_outputs=[x],
-        attributes={
-            &#34;op&#34;: &#34;sum&#34;,
-            &#34;__collectiveReplicaGrouping&#34;: rg_info,
-            &#34;backwards&#34;: insert_in_grad_graph,
-        },
-    )[0]
-    return out</code></pre>
+    X_local_outer_dim, _ = X.shape
+    _, Y_local_outer_dim = Y.shape
+    result = torch.zeros((X_local_outer_dim, Y_local_outer_dim * replication_factor))
+    X = einops.rearrange(X, &#34;m (k c) -&gt; m k c&#34;, k=num_chunks)
+    Y = einops.rearrange(Y, &#34;(k c) n -&gt; c k n&#34;, k=num_chunks)
+    for i in range(num_chunks):
+        index = torch.tensor([i])
+        Yg = all_gather_cross_replica(
+            torch.index_select(Y, dim=1, index=index).squeeze(), replication_factor
+        )
+        Yg = einops.rearrange(Yg, &#34;r c n -&gt; c (r n)&#34;)
+        Xp = torch.index_select(X, dim=1, index=index).squeeze()
+        result += Xp @ Yg
+    return result</code></pre>
 </details>
 </dd>
 </dl>
@@ -172,9 +195,9 @@ returns &ndash; shape (</em>)</p></div>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="poptorch_experimental_addons.collectives.all_gather_cross_replica" href="#poptorch_experimental_addons.collectives.all_gather_cross_replica">all_gather_cross_replica</a></code></li>
-<li><code><a title="poptorch_experimental_addons.collectives.all_gather_cross_replica_identical_grads_in" href="#poptorch_experimental_addons.collectives.all_gather_cross_replica_identical_grads_in">all_gather_cross_replica_identical_grads_in</a></code></li>
-<li><code><a title="poptorch_experimental_addons.collectives.all_reduce_cross_replica_sum" href="#poptorch_experimental_addons.collectives.all_reduce_cross_replica_sum">all_reduce_cross_replica_sum</a></code></li>
+<li><code><a title="poptorch_experimental_addons.sharded.colrowrep_sharded_matmul" href="#poptorch_experimental_addons.sharded.colrowrep_sharded_matmul">colrowrep_sharded_matmul</a></code></li>
+<li><code><a title="poptorch_experimental_addons.sharded.repcolcol_sharded_matmul" href="#poptorch_experimental_addons.sharded.repcolcol_sharded_matmul">repcolcol_sharded_matmul</a></code></li>
+<li><code><a title="poptorch_experimental_addons.sharded.rowcolrow_sharded_matmul" href="#poptorch_experimental_addons.sharded.rowcolrow_sharded_matmul">rowcolrow_sharded_matmul</a></code></li>
 </ul>
 </li>
 </ul>
