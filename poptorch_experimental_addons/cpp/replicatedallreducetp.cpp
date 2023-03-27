@@ -25,8 +25,8 @@ For the op to work you need to run the `OpToIdentityPattern` after autodiffing t
 #include <popart/popx/devicex.hpp>
 #include <popart/popx/irlowering.hpp>
 #include <popart/popx/op/collectives/replicatedallreducex.hpp>
-#include <popart/popx/opxmanager.hpp>
 #include <popart/popx/opx.hpp>
+#include <popart/popx/opxmanager.hpp>
 #include <popart/region.hpp>
 #include <popart/tensor.hpp>
 #include <popart/util.hpp>
