@@ -6,7 +6,6 @@ For the op to work you need to run the `OpToIdentityPattern` after autodiffing t
 
 #include <map>
 #include <memory>
-#include <snap/Tensor.hpp>
 #include <vector>
 
 #pragma GCC diagnostic push
