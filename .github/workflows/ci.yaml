@@ -13,7 +13,7 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
-    container: graphcore/pytorch:3.1.0-ubuntu-20.04
+    container: graphcore/pytorch:3.2.0-ubuntu-20.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
