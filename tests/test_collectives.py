@@ -137,3 +137,7 @@ def test_collective(op: Callable[[torch.Tensor, int], torch.Tensor]) -> None:
     actual = run_collective(X, op, num_ipus)
     expected = simulate_collective(X, _op_mapping[op], num_ipus)
     list(map(assert_close, actual, expected))
+
+
+if __name__ == "__main__":
+    test_collective(pea.collectives.all_to_all_single_cross_replica)
