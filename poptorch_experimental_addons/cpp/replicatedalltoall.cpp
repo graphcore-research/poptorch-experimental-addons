@@ -12,9 +12,9 @@
 
 #include <popart/popx/devicex.hpp>
 #include <popart/popx/irlowering.hpp>
+#include <popart/popx/op/collectives/collectivesx.hpp>
 #include <popart/popx/opxmanager.hpp>
 #include <popart/region.hpp>
-#include <popart/popx/op/collectives/collectivesx.hpp>
 #pragma GCC diagnostic pop
 
 namespace popart {
