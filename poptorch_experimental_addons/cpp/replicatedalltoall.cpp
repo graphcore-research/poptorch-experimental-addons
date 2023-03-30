@@ -1,7 +1,5 @@
 // Copyright (c) 2023 Graphcore Ltd. All rights reserved.
 
-#include <algorithm>
-
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
