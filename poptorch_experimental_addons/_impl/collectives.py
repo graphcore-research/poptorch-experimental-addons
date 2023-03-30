@@ -97,7 +97,7 @@ def all_to_all_single_cross_replica(x: torch.Tensor, replication_factor: int) ->
 
     Does not support uneven splits.
 
-    See https://pytorch.org/docs/stable/distributed.html#torch.distributed.all_to_all_single
+    Also see docs for `torch.distributed.all_to_all_single` for similar
 
     x -- shape (*)
     returns  -- shape (*)
