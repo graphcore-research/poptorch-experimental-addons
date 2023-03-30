@@ -1,3 +1,5 @@
+// Copyright (c) 2023 Graphcore Ltd. All rights reserved.
+
 #ifndef GUARD_NEURALNET_REPLICATEDALLTOALLX_HPP
 #define GUARD_NEURALNET_REPLICATEDALLTOALLX_HPP
 

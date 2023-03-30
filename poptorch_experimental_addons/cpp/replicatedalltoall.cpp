@@ -1,3 +1,5 @@
+// Copyright (c) 2023 Graphcore Ltd. All rights reserved.
+
 #include "replicatedalltoall.hpp"
 #include <algorithm>
 
