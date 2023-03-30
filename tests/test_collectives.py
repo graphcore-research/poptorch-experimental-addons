@@ -136,7 +136,6 @@ def test_collective(op: Callable[[torch.Tensor, int], torch.Tensor]) -> None:
     num_ipus = 2
     actual = run_collective(X, op, num_ipus)
     expected = simulate_collective(X, _op_mapping[op], num_ipus)
-    # breakpoint()
     list(map(assert_close, actual, expected))
 
 
