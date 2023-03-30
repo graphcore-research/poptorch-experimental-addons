@@ -14,7 +14,7 @@ from poptorch.enums import CommGroupType
 
 import poptorch_experimental_addons as pea
 
-from .utils import _apply_replica_grouping
+from . import utils
 
 assert_close = torch.testing.assert_close  # type:ignore[attr-defined]
 
@@ -30,7 +30,7 @@ class _CollectiveCrossReplicaTester(torch.nn.Module):
         self,
         X: torch.Tensor,
         replication_factor: int,
-        cross_replica_op: Callable,
+        cross_replica_op: Callable[[torch.Tensor, int], torch.Tensor],
     ):
         super().__init__()
         self.X = nn.Parameter(
@@ -46,7 +46,10 @@ class _CollectiveCrossReplicaTester(torch.nn.Module):
 
 class _CollectiveSimulator(torch.nn.Module):
     def __init__(
-        self, X: torch.Tensor, replication_factor: int, simulator_op: Callable
+        self,
+        X: torch.Tensor,
+        replication_factor: int,
+        simulator_op: Callable[[torch.Tensor, int], torch.Tensor],
     ):
         super().__init__()
         self.X = nn.Parameter(
@@ -62,7 +65,7 @@ class _CollectiveSimulator(torch.nn.Module):
 
 
 def _all_gather_simulator_op(X: torch.Tensor, replication_factor: int) -> torch.Tensor:
-    return einops.repeat(X, "s n d -> r s n d", r=replication_factor)
+    return einops.repeat(X, "s n d -> r s n d", r=replication_factor)  # r == s
 
 
 def _all_reduce_simulator_op(X: torch.Tensor, replication_factor: int) -> torch.Tensor:
@@ -71,7 +74,7 @@ def _all_reduce_simulator_op(X: torch.Tensor, replication_factor: int) -> torch.
 
 
 _op_mapping = {
-    pea.collectives.all_gather_cross_replica_mean_grad: _all_gather_simulator_op,
+    pea.collectives.all_gather_cross_replica: _all_gather_simulator_op,
     pea.collectives.all_reduce_cross_replica_sum: _all_reduce_simulator_op,
 }
 
@@ -81,18 +84,28 @@ def generate_input() -> torch.Tensor:
 
 
 def simulate_collective(
-    X: torch.Tensor, op: Callable, num_ipus: int
-) -> Tuple[Any, Any]:
+    X: torch.Tensor, op: Callable[[torch.Tensor, int], torch.Tensor], num_ipus: int
+) -> Tuple[Any, Any, Any]:
     sim = _CollectiveSimulator(
         deepcopy(X), replication_factor=num_ipus, simulator_op=op
     )
+    lr = 1.0
+    if op == _all_reduce_simulator_op:
+        lr /= num_ipus
+    optimizer = torch.optim.SGD(sim.parameters(), lr=lr)
+    optimizer.zero_grad()
     out, loss = sim()
     loss.mean().backward()
     grad = einops.rearrange(sim.X.grad, "r n d -> (r n) d")
-    return out, grad
+    optimizer.step()
+    if op == _all_gather_simulator_op:
+        grad *= num_ipus  # type: ignore
+    return out, grad, sim.X.data
 
 
-def run_collective(X: torch.Tensor, op: Callable, num_ipus: int) -> Tuple[Any, Any]:
+def run_collective(
+    X: torch.Tensor, op: Callable[[torch.Tensor, int], torch.Tensor], num_ipus: int
+) -> Tuple[Any, Any, Any]:
     options = poptorch.Options()
     options.replicationFactor(num_ipus)
     options.outputMode(poptorch.OutputMode.All)
@@ -105,17 +118,21 @@ def run_collective(X: torch.Tensor, op: Callable, num_ipus: int) -> Tuple[Any, A
     )
     optimizer = poptorch.optim.SGD(col.parameters(), lr=1.0)
     col = poptorch.trainingModel(col, options, optimizer)
-    _apply_replica_grouping(col, CommGroupType.Orthogonal, 1)
+    utils._apply_replica_grouping(col, CommGroupType.Orthogonal, 1)
     out, _ = col()
     out = out.detach().cpu()
     grad = col.getAnchoredTensor("grad_X")  # type: ignore
-    return out, grad
+    return out, grad, col.X.data
 
 
 @pytest.mark.parametrize("op", list(_op_mapping.keys()))
-def test_collective(op: Callable) -> None:
+def test_collective(op: Callable[[torch.Tensor, int], torch.Tensor]) -> None:
     X = generate_input()
     num_ipus = 2
     actual = run_collective(X, op, num_ipus)
     expected = simulate_collective(X, _op_mapping[op], num_ipus)
-    map(assert_close, actual, expected)
+    list(map(assert_close, actual, expected))
+
+
+if __name__ == "__main__":
+    test_collective(pea.collectives.all_reduce_cross_replica_sum)

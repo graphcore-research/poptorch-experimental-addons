@@ -1,5 +1,9 @@
 # Copyright (c) 2023 Graphcore Ltd. All rights reserved.
 
+"""
+Primitives for collective communication across IPU clusters.
+"""
+
 from typing import Any
 
 import poptorch
@@ -11,12 +15,15 @@ def _no_op_reshape(x: torch.Tensor) -> torch.Tensor:
     return x.unsqueeze(-1).squeeze(-1)
 
 
-def all_gather_cross_replica_mean_grad(x: torch.Tensor, replication_factor: int) -> Any:
+def all_gather_cross_replica_identical_grads_in(
+    x: torch.Tensor, replication_factor: int
+) -> Any:
     """
     All-gather across IPU program replicas.
 
-    Gathers and stacks tensors occupying the same memory location across IPUs,
-    then replicates the result.
+    Gathers and stacks tensors occupying the same memory location across all IPUs
+
+    Gradient graph generated assumes gradient inputs are identical
 
     x -- shape (*)
     returns --  shape (replication_factor, *)
@@ -35,6 +42,20 @@ def all_gather_cross_replica_mean_grad(x: torch.Tensor, replication_factor: int)
     return out
 
 
+def all_gather_cross_replica(x: torch.Tensor, replication_factor: int) -> Any:
+    """
+    All-gather across IPU program replicas.
+
+    Gathers and stacks tensors occupying the same memory location across all IPUs
+
+    x -- shape (*)
+    returns --  shape (replication_factor, *)
+    """
+    x = all_gather_cross_replica_identical_grads_in(x, replication_factor)
+    x = all_reduce_cross_replica_sum(x, replication_factor, insert_in_grad_graph=True)
+    return x
+
+
 def all_reduce_cross_replica_sum(
     x: torch.Tensor, replication_factor: int, insert_in_grad_graph: bool = False
 ) -> Any:
@@ -43,6 +64,9 @@ def all_reduce_cross_replica_sum(
 
     Sums tensors occupying the same memory location across IPUs, resulting
     in replicated tensors.
+
+    insert_in_grad_graph is a boolean argument that inserts the all_reduce in
+    the gradient graph (backward pass) rather than the forward graph.
 
     x -- shape (*)
     returns -- shape (*)
@@ -63,4 +87,8 @@ def all_reduce_cross_replica_sum(
     return out
 
 
-__all__ = ["all_gather_cross_replica_mean_grad", "all_reduce_cross_replica_sum"]
+__all__ = [
+    "all_gather_cross_replica_identical_grads_in",
+    "all_gather_cross_replica",
+    "all_reduce_cross_replica_sum",
+]
