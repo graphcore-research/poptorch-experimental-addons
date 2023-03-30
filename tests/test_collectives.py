@@ -73,9 +73,14 @@ def _all_reduce_simulator_op(X: torch.Tensor, replication_factor: int) -> torch.
     return einops.repeat(out, "n d -> r n d", r=replication_factor)
 
 
+def _all_to_all_simulator_op(X: torch.Tensor, replication_factor: int) -> torch.Tensor:
+    return einops.rearrange(X, "r s d -> s r d", r=replication_factor)
+
+
 _op_mapping = {
     pea.collectives.all_gather_cross_replica: _all_gather_simulator_op,
     pea.collectives.all_reduce_cross_replica_sum: _all_reduce_simulator_op,
+    pea.collectives.all_to_all_single_cross_replica: _all_to_all_simulator_op,
 }
 
 
@@ -98,7 +103,7 @@ def simulate_collective(
     loss.mean().backward()
     grad = einops.rearrange(sim.X.grad, "r n d -> (r n) d")
     optimizer.step()
-    if op == _all_gather_simulator_op:
+    if op in set([_all_gather_simulator_op, _all_to_all_simulator_op]):
         grad *= num_ipus  # type: ignore
     return out, grad, sim.X.data
 
@@ -131,8 +136,9 @@ def test_collective(op: Callable[[torch.Tensor, int], torch.Tensor]) -> None:
     num_ipus = 2
     actual = run_collective(X, op, num_ipus)
     expected = simulate_collective(X, _op_mapping[op], num_ipus)
+    # breakpoint()
     list(map(assert_close, actual, expected))
 
 
 if __name__ == "__main__":
-    test_collective(pea.collectives.all_reduce_cross_replica_sum)
+    test_collective(pea.collectives.all_to_all_single_cross_replica)

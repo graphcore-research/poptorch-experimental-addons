@@ -87,13 +87,13 @@ def all_reduce_cross_replica_sum(
     return out
 
 
-def all_to_all_single_cross_replica(
-    x: torch.Tensor,
-):
+def all_to_all_single_cross_replica(x: torch.Tensor, replication_factor: int) -> Any:
     """
     All-to-all across IPU program replicas
 
     Splits input tensor over leading axis and scatters to IPU according to position.
+
+    Leading axis must be divisible by number of replicas.
 
     Does not support uneven splits.
 
@@ -105,7 +105,7 @@ def all_to_all_single_cross_replica(
 
     out = poptorch.custom_op(
         [x],
-        name="ReplicatedAlltoAll",
+        name="ReplicatedAllToAll",
         domain="ai.graphcore",
         domain_version=1,
         example_outputs=[x],
