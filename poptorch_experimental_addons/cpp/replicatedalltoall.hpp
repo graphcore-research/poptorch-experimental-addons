@@ -10,29 +10,27 @@
 namespace popart {
 
 class ReplicatedAllToAllOp : public CollectivesBaseOp {
-public:
-  ReplicatedAllToAllOp(const OperatorIdentifier &, ReplicaGrouping group,
-                       const Op::Settings &);
+   public:
+    ReplicatedAllToAllOp(const OperatorIdentifier&, ReplicaGrouping group, const Op::Settings&);
 
-  std::unique_ptr<Op> clone() const final;
-  void setup() final;
+    std::unique_ptr<Op> clone() const final;
+    void setup() final;
 
-  float getSubgraphValue() const final { return getHighSubgraphValue(); }
+    float getSubgraphValue() const final { return getHighSubgraphValue(); }
 
-  ReplicatedTensorShardingIndices
-  getReplicatedTensorShardingIndices() const override;
+    ReplicatedTensorShardingIndices getReplicatedTensorShardingIndices() const override;
 
-  std::vector<std::unique_ptr<Op>> getGradOps() final;
+    std::vector<std::unique_ptr<Op>> getGradOps() final;
 };
 
 class ReplicatedAllToAllGradOp : public ReplicatedAllToAllOp {
-public:
-  ReplicatedAllToAllGradOp(const ReplicatedAllToAllOp &);
+   public:
+    ReplicatedAllToAllGradOp(const ReplicatedAllToAllOp&);
 
-  const std::map<int, int> &gradOutToNonGradIn() const override final;
-  const std::vector<GradInOutMapper> &gradInputInfo() const final;
+    const std::map<int, int>& gradOutToNonGradIn() const override final;
+    const std::vector<GradInOutMapper>& gradInputInfo() const final;
 };
 
-} // namespace popart
+}  // namespace popart
 
 #endif

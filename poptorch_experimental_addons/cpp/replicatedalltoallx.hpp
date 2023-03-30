@@ -11,20 +11,20 @@ namespace popart {
 namespace popx {
 
 class ReplicatedAllToAllOpx : public CollectivesBaseOpx {
-public:
-  ReplicatedAllToAllOpx(Op *, Devicex *);
-  void grow(poplar::program::Sequence &) const final;
-  InputCreatorType getInputCreatorType(InIndex index) const final;
-  poplar::Tensor unwindTensorLayout(poplar::Tensor, InIndex, OutIndex) const final;
-  view::RegMap unwindRegion(InIndex, OutIndex) const final;
+   public:
+    ReplicatedAllToAllOpx(Op*, Devicex*);
+    void grow(poplar::program::Sequence&) const final;
+    InputCreatorType getInputCreatorType(InIndex index) const final;
+    poplar::Tensor unwindTensorLayout(poplar::Tensor, InIndex, OutIndex) const final;
+    view::RegMap unwindRegion(InIndex, OutIndex) const final;
 };
 
 class ReplicatedAllToAllGradOpx : public ReplicatedAllToAllOpx {
-public:
-  ReplicatedAllToAllGradOpx(Op *, Devicex *);
+   public:
+    ReplicatedAllToAllGradOpx(Op*, Devicex*);
 };
 
-} // namespace popx
-} // namespace popart
+}  // namespace popx
+}  // namespace popart
 
 #endif
