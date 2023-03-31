@@ -4,10 +4,26 @@
 Primitives for collective communication across IPU clusters.
 """
 
+from dataclasses import dataclass
 from typing import Any
 
 import poptorch
 import torch
+
+
+@dataclass
+class ReplicaGroupingInfo:
+    num_replicas: int
+    stride: int
+    group_size: int
+
+    @property
+    def attributes(self):
+        return [self.num_replicas, self.stride, self.group_size]
+
+    @property
+    def num_groups(self):
+        return self.num_replicas // self.group_size
 
 
 def _no_op_reshape(x: torch.Tensor) -> torch.Tensor:
@@ -16,7 +32,7 @@ def _no_op_reshape(x: torch.Tensor) -> torch.Tensor:
 
 
 def all_gather_cross_replica_identical_grads_in(
-    x: torch.Tensor, replication_factor: int
+    x: torch.Tensor, rg_info: ReplicaGroupingInfo
 ) -> Any:
     """
     All-gather across IPU program replicas.
@@ -35,14 +51,17 @@ def all_gather_cross_replica_identical_grads_in(
         domain="ai.graphcore",
         domain_version=1,
         example_outputs=[
-            torch.zeros(dtype=x.dtype, size=(replication_factor, *x.shape))
+            torch.zeros(dtype=x.dtype, size=(rg_info.group_size, *x.shape))
         ],
+        attributes={
+            "__collectiveReplicaGrouping": rg_info.attributes,
+        },
     )[0]
-    out = out.reshape(replication_factor, *x.shape)
+    out = out.reshape(rg_info.group_size, *x.shape)
     return out
 
 
-def all_gather_cross_replica(x: torch.Tensor, replication_factor: int) -> Any:
+def all_gather_cross_replica(x: torch.Tensor, rg_info: ReplicaGroupingInfo) -> Any:
     """
     All-gather across IPU program replicas.
 
@@ -51,13 +70,15 @@ def all_gather_cross_replica(x: torch.Tensor, replication_factor: int) -> Any:
     x -- shape (*)
     returns --  shape (replication_factor, *)
     """
-    x = all_gather_cross_replica_identical_grads_in(x, replication_factor)
-    x = all_reduce_cross_replica_sum(x, replication_factor, insert_in_grad_graph=True)
+    x = all_gather_cross_replica_identical_grads_in(x, rg_info)
+    x = all_reduce_cross_replica_sum(x, rg_info, insert_in_grad_graph=True)
     return x
 
 
 def all_reduce_cross_replica_sum(
-    x: torch.Tensor, replication_factor: int, insert_in_grad_graph: bool = False
+    x: torch.Tensor,
+    rg_info: ReplicaGroupingInfo,
+    insert_in_grad_graph: bool = False,
 ) -> Any:
     """
     All-reduce across IPU program replicas
@@ -71,7 +92,6 @@ def all_reduce_cross_replica_sum(
     x -- shape (*)
     returns -- shape (*)
     """
-    rg_info = [replication_factor, 1, replication_factor]
     out = poptorch.custom_op(
         [x],
         name="ReplicatedAllReduceTP",
@@ -80,20 +100,22 @@ def all_reduce_cross_replica_sum(
         example_outputs=[x],
         attributes={
             "op": "sum",
-            "__collectiveReplicaGrouping": rg_info,
+            "__collectiveReplicaGrouping": rg_info.attributes,
             "backwards": insert_in_grad_graph,
         },
     )[0]
     return out
 
 
-def all_to_all_single_cross_replica(x: torch.Tensor, replication_factor: int) -> Any:
+def all_to_all_single_cross_replica(
+    x: torch.Tensor, rg_info: ReplicaGroupingInfo
+) -> Any:
     """
     All-to-all across IPU program replicas
 
     Splits input tensor over leading axis and scatters to IPU according to position.
 
-    Leading axis must be divisible by number of replicas.
+    Leading axis must equal total number of replicas.
 
     Does not support uneven splits.
 
@@ -102,13 +124,20 @@ def all_to_all_single_cross_replica(x: torch.Tensor, replication_factor: int) ->
     x -- shape (*)
     returns  -- shape (*)
     """
-
+    if rg_info.num_groups > 1:
+        raise NotImplementedError(
+            "all_to_all_single_cross_replica currently only \
+            supports communication for a single replica group"
+        )
     out = poptorch.custom_op(
         [x],
         name="ReplicatedAllToAll",
         domain="ai.graphcore",
         domain_version=1,
         example_outputs=[x],
+        attributes={
+            "__collectiveReplicaGrouping": rg_info.attributes,
+        },
     )[0]
     return out
 
@@ -118,4 +147,5 @@ __all__ = [
     "all_gather_cross_replica",
     "all_reduce_cross_replica_sum",
     "all_to_all_single_cross_replica",
+    "ReplicaGroupingInfo",
 ]

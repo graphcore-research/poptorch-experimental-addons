@@ -2,8 +2,16 @@
 
 from typing import List
 
+import torch
 import torch.nn as nn
 from poptorch.enums import CommGroupType, VariableRetrievalMode
+
+
+def _store_grad(tensor: torch.Tensor):
+    def hook(grad):
+        tensor.grad = grad
+
+    return hook
 
 
 def _apply_replica_grouping(
