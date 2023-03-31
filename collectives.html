@@ -154,6 +154,48 @@ returns &ndash; shape (</em>)</p></div>
     return out</code></pre>
 </details>
 </dd>
+<dt id="poptorch_experimental_addons.collectives.all_to_all_single_cross_replica"><code class="name flex">
+<span>def <span class="ident">all_to_all_single_cross_replica</span></span>(<span>x: torch.Tensor, replication_factor: int) ‑> Any</span>
+</code></dt>
+<dd>
+<div class="desc"><p>All-to-all across IPU program replicas</p>
+<p>Splits input tensor over leading axis and scatters to IPU according to position.</p>
+<p>Leading axis must be divisible by number of replicas.</p>
+<p>Does not support uneven splits.</p>
+<p>Also see docs for <code>torch.distributed.all_to_all_single</code> for similar</p>
+<p>x &ndash; shape (<em>)
+returns
+&ndash; shape (</em>)</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def all_to_all_single_cross_replica(x: torch.Tensor, replication_factor: int) -&gt; Any:
+    &#34;&#34;&#34;
+    All-to-all across IPU program replicas
+
+    Splits input tensor over leading axis and scatters to IPU according to position.
+
+    Leading axis must be divisible by number of replicas.
+
+    Does not support uneven splits.
+
+    Also see docs for `torch.distributed.all_to_all_single` for similar
+
+    x -- shape (*)
+    returns  -- shape (*)
+    &#34;&#34;&#34;
+
+    out = poptorch.custom_op(
+        [x],
+        name=&#34;ReplicatedAllToAll&#34;,
+        domain=&#34;ai.graphcore&#34;,
+        domain_version=1,
+        example_outputs=[x],
+    )[0]
+    return out</code></pre>
+</details>
+</dd>
 </dl>
 </section>
 <section>
@@ -175,6 +217,7 @@ returns &ndash; shape (</em>)</p></div>
 <li><code><a title="poptorch_experimental_addons.collectives.all_gather_cross_replica" href="#poptorch_experimental_addons.collectives.all_gather_cross_replica">all_gather_cross_replica</a></code></li>
 <li><code><a title="poptorch_experimental_addons.collectives.all_gather_cross_replica_identical_grads_in" href="#poptorch_experimental_addons.collectives.all_gather_cross_replica_identical_grads_in">all_gather_cross_replica_identical_grads_in</a></code></li>
 <li><code><a title="poptorch_experimental_addons.collectives.all_reduce_cross_replica_sum" href="#poptorch_experimental_addons.collectives.all_reduce_cross_replica_sum">all_reduce_cross_replica_sum</a></code></li>
+<li><code><a title="poptorch_experimental_addons.collectives.all_to_all_single_cross_replica" href="#poptorch_experimental_addons.collectives.all_to_all_single_cross_replica">all_to_all_single_cross_replica</a></code></li>
 </ul>
 </li>
 </ul>
