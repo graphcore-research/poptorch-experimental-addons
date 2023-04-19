@@ -35,7 +35,9 @@ def all_gather_cross_replica_identical_grads_in(
         domain="ai.graphcore",
         domain_version=1,
         example_outputs=[
-            torch.zeros(dtype=x.dtype, size=(replication_factor, *x.shape))
+            torch.zeros(
+                dtype=x.dtype, size=(replication_factor, *x.shape), device=x.device
+            ),
         ],
     )[0]
     out = out.reshape(replication_factor, *x.shape)

@@ -97,7 +97,9 @@ def distance_matrix(tensor1: Tensor, tensor2: Tensor, p: int) -> Tensor:
             inputs=[tensor1, tensor2],
             example_outputs=[
                 torch.zeros(
-                    dtype=tensor1.dtype, size=[tensor1.shape[0], tensor2.shape[0]]
+                    dtype=tensor1.dtype,
+                    size=[tensor1.shape[0], tensor2.shape[0]],
+                    device=tensor1.device,
                 )
             ],
             attributes=dict(root_path=str(Path(__file__).parent.parent)),
