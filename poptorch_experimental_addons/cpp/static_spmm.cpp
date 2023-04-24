@@ -153,7 +153,9 @@ struct CustomOpx : popart::popx::Opx {
     }
 };
 
-const popart::OperatorIdentifier CustomOp::ID = {"ai.graphcore.pea", "StaticSparseMatmul", 1};
+// We cannot use "ai.graphcore.pea", since shape inference tries to call
+// `Ir::getDefaultOpsetVersion` which cannot be extended to custom domains
+const popart::OperatorIdentifier CustomOp::ID = {"ai.graphcore", "StaticSparseMatmul", 1};
 popart::OpDefinition::DataTypes T = {popart::DataType::FLOAT16, popart::DataType::FLOAT};
 popart::OpCreator<CustomOp> opCreator(
     {{CustomOp::ID,
