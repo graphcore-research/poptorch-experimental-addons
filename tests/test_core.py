@@ -1,6 +1,6 @@
 # Copyright (c) 2023 Graphcore Ltd. All rights reserved.
 
-from typing import Callable, Dict
+from typing import Callable, Dict, cast
 
 import poptorch
 import pytest
@@ -76,8 +76,8 @@ def test_distance_matrix(p: int, dtype: torch.dtype) -> None:
         device="ipu",
     )
     output_torch = run_forward_and_backward(
-        lambda tensor1, tensor2: torch.norm(
-            tensor1[:, None] - tensor2[None, :], p=p, dim=-1
+        lambda tensor1, tensor2: cast(
+            torch.Tensor, (tensor1[:, None] - tensor2[None, :]).norm(p=p, dim=-1)
         ),
         dict(tensor1=tensor1, tensor2=tensor2),
         patterns={},
