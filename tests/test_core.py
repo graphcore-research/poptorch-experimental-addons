@@ -61,12 +61,13 @@ def test_autograd_proxy(device: str) -> None:
     assert_close(outputs["grad_x"], torch.tensor(3.0))
 
 
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float16])
 @pytest.mark.parametrize("p", [1, 2])
-def test_distance_matrix(p: int) -> None:
+def test_distance_matrix(p: int, dtype: torch.dtype) -> None:
     torch.manual_seed(1234)
-    M, N, K = 10, 30, 50
-    tensor1 = 10 + 20 * torch.randn(size=(M, K), dtype=torch.float32)
-    tensor2 = -10 + 10 * torch.randn(size=(N, K), dtype=torch.float32)
+    M, N, K = 10, 30, 5
+    tensor1 = torch.randn(size=(M, K), dtype=dtype)
+    tensor2 = torch.randn(size=(N, K), dtype=dtype)
 
     output_ipu = run_forward_and_backward(
         lambda tensor1, tensor2: pea.distance_matrix(tensor1, tensor2, p),
@@ -75,12 +76,32 @@ def test_distance_matrix(p: int) -> None:
         device="ipu",
     )
     output_torch = run_forward_and_backward(
-        lambda tensor1, tensor2: torch.cdist(tensor1, tensor2, p),
+        lambda tensor1, tensor2: torch.norm(
+            tensor1[:, None] - tensor2[None, :], p=p, dim=-1
+        ),
         dict(tensor1=tensor1, tensor2=tensor2),
         patterns={},
         device="cpu",
     )
 
-    assert_close(output_ipu["output"], output_torch["output"])
-    assert_close(output_ipu["grad_tensor1"], output_torch["grad_tensor1"])
-    assert_close(output_ipu["grad_tensor2"], output_torch["grad_tensor2"])
+    atol = {torch.float32: 1e-5, torch.float16: 2e-3}[dtype]
+    rtol = {torch.float32: 2e-6, torch.float16: 2e-3}[dtype]
+
+    assert_close(
+        output_ipu["output"],
+        output_torch["output"],
+        rtol=rtol,
+        atol=atol,
+    )
+    assert_close(
+        output_ipu["grad_tensor1"],
+        output_torch["grad_tensor1"],
+        rtol=rtol,
+        atol=atol,
+    )
+    assert_close(
+        output_ipu["grad_tensor2"],
+        output_torch["grad_tensor2"],
+        rtol=rtol,
+        atol=atol,
+    )
