@@ -97,8 +97,8 @@ struct Opx : popart::popx::Opx {
     }
 };
 
-const popart::OperatorIdentifier Op::ID = {"ai.graphcore.pea", "AutogradProxy", 1};
-const popart::OperatorIdentifier GradOp::ID = {"ai.graphcore.pea", "AutogradProxyGrad", 1};
+const popart::OperatorIdentifier Op::ID = {"ai.graphcore", "AutogradProxy", 1};
+const popart::OperatorIdentifier GradOp::ID = {"ai.graphcore", "AutogradProxyGrad", 1};
 popart::OpDefinition::DataTypes T = {popart::DataType::FLOAT16, popart::DataType::FLOAT};
 popart::OpCreator<Op> opCreator(
     {{Op::ID,
