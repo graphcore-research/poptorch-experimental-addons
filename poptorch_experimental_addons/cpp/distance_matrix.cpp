@@ -3,6 +3,7 @@
 #include <cmath>
 #include <sstream>
 
+#include <popops/Cast.hpp>
 #include <popops/ElementWise.hpp>
 #include <poputil/TileMapping.hpp>
 #include <poputil/Util.hpp>
@@ -59,6 +60,19 @@ poplar::Tensor getCachedCopy(std::map<std::pair<size_t, size_t>, poplar::Tensor>
     return copy;
 }
 
+// Like popops::cast, but alias rather than copying when the type already matches
+poplar::Tensor castMaybe(poplar::Graph& graph,
+                         const poplar::Tensor& tensor,
+                         poplar::Type type,
+                         poplar::program::Sequence& prog) {
+    if (type == tensor.elementType()) {
+        return tensor;
+    }
+    auto casted = graph.clone(type, tensor);
+    prog.add(popops::cast(graph, tensor, casted));
+    return casted;
+}
+
 poplar::Tensor l1distance(poplar::Graph& graph,
                           const poplar::Tensor& a,
                           const poplar::Tensor& b,
@@ -66,14 +80,13 @@ poplar::Tensor l1distance(poplar::Graph& graph,
                           const poplar::DebugContext& debugContext) {
     if (a.rank() != 2 || b.rank() != 2 || a.dim(1) != b.dim(1)) {
         std::ostringstream msg;
-        msg << "Bad arguments to l1distance, expected a.shape (M, K), b.shape (N, "
-               "K), actual"
+        msg << "Bad arguments to l1distance, expected a.shape (M, K), b.shape (N, K), actual"
             << " a.shape = " << a.shapeToString() << ", b.shape = " << b.shapeToString() << ".";
         throw std::invalid_argument(msg.str());
     }
     const size_t n = b.dim(0);
     poplar::Tensor out =
-        graph.addVariable(a.elementType(), {a.dim(0), b.dim(0)}, {debugContext, "l1dist_out"});
+        graph.addVariable(poplar::FLOAT, {a.dim(0), b.dim(0)}, {debugContext, "l1dist_out"});
     mapTensor2Dblocks(graph, out);
     const auto& mapping = graph.getTileMapping(out);
     poplar::ComputeSet cs = graph.addComputeSet({debugContext, "l1dist"});
@@ -93,7 +106,7 @@ poplar::Tensor l1distance(poplar::Graph& graph,
         }
     }
     prog.add(poplar::program::Execute(cs));
-    return out;
+    return castMaybe(graph, out, a.elementType(), prog);
 }
 
 poplar::Tensor l1distancegrad(poplar::Graph& graph,
@@ -113,7 +126,7 @@ poplar::Tensor l1distancegrad(poplar::Graph& graph,
     }
     const size_t k = a.dim(1);
     poplar::Tensor grad =
-        graph.addVariable(a.elementType(), a.shape(), {debugContext, "l1dist_grad"});
+        graph.addVariable(poplar::FLOAT, a.shape(), {debugContext, "l1dist_grad"});
     mapTensor2Dblocks(graph, grad);
     const auto& mapping = graph.getTileMapping(grad);
     poplar::ComputeSet cs = graph.addComputeSet({debugContext, "l1dist_grad"});
@@ -138,7 +151,7 @@ poplar::Tensor l1distancegrad(poplar::Graph& graph,
         }
     }
     prog.add(poplar::program::Execute(cs));
-    return grad;
+    return castMaybe(graph, grad, a.elementType(), prog);
 }
 
 poplar::Tensor l2distance(poplar::Graph& graph,
@@ -148,14 +161,13 @@ poplar::Tensor l2distance(poplar::Graph& graph,
                           const poplar::DebugContext& debugContext) {
     if (a.rank() != 2 || b.rank() != 2 || a.dim(1) != b.dim(1)) {
         std::ostringstream msg;
-        msg << "Bad arguments to l2distance, expected a.shape (M, K), b.shape (N, "
-               "K), actual"
+        msg << "Bad arguments to l2distance, expected a.shape (M, K), b.shape (N, K), actual"
             << " a.shape = " << a.shapeToString() << ", b.shape = " << b.shapeToString() << ".";
         throw std::invalid_argument(msg.str());
     }
     const size_t n = b.dim(0);
     poplar::Tensor out =
-        graph.addVariable(a.elementType(), {a.dim(0), b.dim(0)}, {debugContext, "l2dist_out"});
+        graph.addVariable(poplar::FLOAT, {a.dim(0), b.dim(0)}, {debugContext, "l2dist_out"});
     mapTensor2Dblocks(graph, out);
     const auto& mapping = graph.getTileMapping(out);
     poplar::ComputeSet cs = graph.addComputeSet({debugContext, "l2dist"});
@@ -175,7 +187,7 @@ poplar::Tensor l2distance(poplar::Graph& graph,
         }
     }
     prog.add(poplar::program::Execute(cs));
-    return out;
+    return castMaybe(graph, out, a.elementType(), prog);
 }
 
 poplar::Tensor l2distancegrad(poplar::Graph& graph,
@@ -197,7 +209,7 @@ poplar::Tensor l2distancegrad(poplar::Graph& graph,
     }
     const size_t k = a.dim(1);
     poplar::Tensor grad =
-        graph.addVariable(a.elementType(), a.shape(), {debugContext, "l2dist_grad"});
+        graph.addVariable(poplar::FLOAT, a.shape(), {debugContext, "l2dist_grad"});
     mapTensor2Dblocks(graph, grad);
     const auto& mapping = graph.getTileMapping(grad);
     poplar::ComputeSet cs = graph.addComputeSet({debugContext, "l2dist_grad"});
@@ -219,7 +231,7 @@ poplar::Tensor l2distancegrad(poplar::Graph& graph,
         }
     }
     prog.add(poplar::program::Execute(cs));
-    return grad;
+    return castMaybe(graph, grad, a.elementType(), prog);
 }
 
 const popart::OperatorIdentifier L1DistanceId = {"ai.graphcore.pea", "L1Distance", 1};
