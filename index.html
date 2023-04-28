@@ -141,7 +141,7 @@ uses <code>f</code>, such that <code>y = f(x)</code>, and the backward pass uses
         (y,) = poptorch.custom_op(
             [fwd, proxy],
             name=&#34;AutogradProxy&#34;,
-            domain=&#34;ai.graphcore.pea&#34;,
+            domain=&#34;ai.graphcore&#34;,
             domain_version=1,
             example_outputs=[fwd],
         )
@@ -198,7 +198,7 @@ shape (M, N)</p></div>
         (y,) = poptorch.custom_op(
             name=f&#34;L{p}Distance&#34;,
             domain_version=1,
-            domain=&#34;ai.graphcore.pea&#34;,
+            domain=&#34;ai.graphcore&#34;,
             inputs=[tensor1, tensor2],
             example_outputs=[
                 torch.zeros(
