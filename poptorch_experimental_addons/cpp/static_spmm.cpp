@@ -15,6 +15,7 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <popart/op.hpp>
 #include <popart/opmanager.hpp>
+#include <popart/opserialiser.hpp>
 #include <popart/popx/opx.hpp>
 #include <popart/popx/opxmanager.hpp>
 #pragma GCC diagnostic pop
@@ -136,6 +137,32 @@ struct CustomOp : popart::Op {
                 ? std::vector<int64_t>{static_cast<int>(matrix.numRows), input.dim(1)}
                 : std::vector<int64_t>{input.dim(0), static_cast<int>(matrix.numColumns)}};
     }
+    void appendAttributes(popart::OpSerialiserBase& os) const final {
+        popart::Op::appendAttributes(os);
+        appendLocalAttributes(os);
+    }
+    void appendOutlineAttributes(popart::OpSerialiserBase& os) const final {
+        popart::Op::appendOutlineAttributes(os);
+        appendLocalAttributes(os);
+    }
+
+   private:
+    template <class T>
+    static std::string vectorToString(const std::vector<T>& v) {
+        std::ostringstream str;
+        std::copy(v.begin(), v.end(), std::ostream_iterator<T>(str, " "));
+        return str.str();
+    }
+    void appendLocalAttributes(popart::OpSerialiserBase& os) const {
+        os.appendAttribute("mode", mode);
+        os.appendAttribute("numRows", matrix.numRows);
+        os.appendAttribute("numColumns", matrix.numColumns);
+        os.appendAttribute("blockSizeRows", matrix.getBlockDimensions()[0]);
+        os.appendAttribute("blockSizeColumns", matrix.getBlockDimensions()[1]);
+        os.appendAttribute("rowIndices", vectorToString(matrix.rowIndices));
+        os.appendAttribute("columnIndices", vectorToString(matrix.columnIndices));
+        os.appendAttribute("nzValues", vectorToString(matrix.nzValues));
+    }
 };
 
 struct CustomOpx : popart::popx::Opx {
@@ -153,7 +180,9 @@ struct CustomOpx : popart::popx::Opx {
     }
 };
 
-const popart::OperatorIdentifier CustomOp::ID = {"ai.graphcore.pea", "StaticSparseMatmul", 1};
+// We cannot use "ai.graphcore.pea", since shape inference tries to call
+// `Ir::getDefaultOpsetVersion` which cannot be extended to custom domains
+const popart::OperatorIdentifier CustomOp::ID = {"ai.graphcore", "StaticSparseMatmul", 1};
 popart::OpDefinition::DataTypes T = {popart::DataType::FLOAT16, popart::DataType::FLOAT};
 popart::OpCreator<CustomOp> opCreator(
     {{CustomOp::ID,

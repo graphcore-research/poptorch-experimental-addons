@@ -52,7 +52,7 @@ def autograd_proxy(fwd: Tensor, proxy: Tensor) -> Tensor:
         (y,) = poptorch.custom_op(
             [fwd, proxy],
             name="AutogradProxy",
-            domain="ai.graphcore.pea",
+            domain="ai.graphcore",
             domain_version=1,
             example_outputs=[fwd],
         )
@@ -93,7 +93,7 @@ def distance_matrix(tensor1: Tensor, tensor2: Tensor, p: int) -> Tensor:
         (y,) = poptorch.custom_op(
             name=f"L{p}Distance",
             domain_version=1,
-            domain="ai.graphcore.pea",
+            domain="ai.graphcore",
             inputs=[tensor1, tensor2],
             example_outputs=[
                 torch.zeros(

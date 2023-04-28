@@ -234,10 +234,10 @@ poplar::Tensor l2distancegrad(poplar::Graph& graph,
     return castMaybe(graph, grad, a.elementType(), prog);
 }
 
-const popart::OperatorIdentifier L1DistanceId = {"ai.graphcore.pea", "L1Distance", 1};
-const popart::OperatorIdentifier L2DistanceId = {"ai.graphcore.pea", "L2Distance", 1};
-const popart::OperatorIdentifier L1DistanceGradId = {"ai.graphcore.pea", "L1DistanceGrad", 1};
-const popart::OperatorIdentifier L2DistanceGradId = {"ai.graphcore.pea", "L2DistanceGrad", 1};
+const popart::OperatorIdentifier L1DistanceId = {"ai.graphcore", "L1Distance", 1};
+const popart::OperatorIdentifier L2DistanceId = {"ai.graphcore", "L2Distance", 1};
+const popart::OperatorIdentifier L1DistanceGradId = {"ai.graphcore", "L1DistanceGrad", 1};
+const popart::OperatorIdentifier L2DistanceGradId = {"ai.graphcore", "L2DistanceGrad", 1};
 
 class L1DistanceOp;
 class L1DistanceGradOpx;
