@@ -8,7 +8,7 @@ A collection of addons to [PopTorch](https://github.com/graphcore/poptorch), wit
 See [documentation](https://graphcore-research.github.io/poptorch-experimental-addons).
 
 ```bash
-# Tested on Poplar SDK 3.2.0+1277, Ubuntu 20.04, Python 3.8
+# Tested on Poplar SDK 3.3.0+7857, Ubuntu 20.04, Python 3.8
 pip install git+https://github.com/graphcore-research/poptorch-experimental-addons
 
 # Run an example

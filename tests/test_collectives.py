@@ -16,8 +16,6 @@ import poptorch_experimental_addons as pea
 
 from . import utils
 
-assert_close = torch.testing.assert_close  # type:ignore[attr-defined]
-
 
 def set_seed(seed: int) -> None:
     torch.manual_seed(seed)
@@ -136,4 +134,4 @@ def test_collective(op: Callable[[torch.Tensor, int], torch.Tensor]) -> None:
     num_ipus = 2
     actual = run_collective(X, op, num_ipus)
     expected = simulate_collective(X, _op_mapping[op], num_ipus)
-    list(map(assert_close, actual, expected))
+    list(map(torch.testing.assert_close, actual, expected))
