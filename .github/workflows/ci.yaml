@@ -23,7 +23,10 @@ jobs:
           apt-get install -y clang-format
           pip install -r requirements-dev.txt
       - name: Run CI
-        run: ./dev ci
+        run: |
+          source /opt/setup-bash-env.sh
+          ./dev ci
+        shell: bash
       - name: Publish documentation
         if: ${{github.ref == 'refs/heads/main'}}
         uses: Cecilapp/GitHub-Pages-deploy@v3
