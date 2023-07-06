@@ -57,7 +57,7 @@ def autograd_proxy(fwd: Tensor, proxy: Tensor) -> Tensor:
             example_outputs=[fwd],
         )
     else:
-        y = _AutogradProxy.apply(fwd, proxy)
+        y = _AutogradProxy.apply(fwd, proxy)  # type:ignore[no-untyped-call]
     return y
 
 

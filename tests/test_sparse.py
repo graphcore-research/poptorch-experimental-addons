@@ -11,8 +11,6 @@ from torch import Tensor
 
 import poptorch_experimental_addons as pea
 
-assert_close = torch.testing.assert_close  # type:ignore[attr-defined]
-
 
 @dataclass
 class Problem:
@@ -83,7 +81,7 @@ def test_coo_methods(shape: Tuple[int], block_size: int, seed: int) -> None:
     assert torch.sum(dense != 0) == nnz_blocks * block_size ** len(shape)
 
     if len(shape) == 2:
-        assert_close(
+        torch.testing.assert_close(
             pea.sparse.block_coo_to_dense(pea.sparse.block_coo_transpose(array)),
             dense.T,
         )
@@ -141,7 +139,7 @@ def test_block_coo_spmm(
         )(problem.dense)
 
         for name, output in outputs.items():
-            assert_close(
+            torch.testing.assert_close(
                 output.float(),
                 problem.expected_output,
                 rtol=0,
@@ -167,7 +165,7 @@ def test_high_level_api() -> None:
     expected_output = dense_in @ pea.sparse.block_coo_to_dense(sparse).T
 
     def check(output: Tensor) -> None:
-        assert_close(output, expected_output, atol=1e-5, rtol=0)
+        torch.testing.assert_close(output, expected_output, atol=1e-5, rtol=0)
 
     check(pea.sparse.StaticSparseLinear(sparse)(dense_in))
     check((pea.sparse.StaticSparseMatrix(sparse) @ dense_in.T).T)

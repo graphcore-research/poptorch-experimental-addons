@@ -9,8 +9,6 @@ from torch import Tensor, nn
 
 import poptorch_experimental_addons as pea
 
-assert_close = torch.testing.assert_close  # type:ignore[attr-defined]
-
 
 def run_forward_and_backward(
     fn: Callable[..., Tensor],
@@ -57,8 +55,8 @@ def test_autograd_proxy(device: str) -> None:
         patterns=dict(AutogradProxyOpPattern=True),
         device=device,
     )
-    assert_close(outputs["loss"], torch.tensor(6.0))
-    assert_close(outputs["grad_x"], torch.tensor(3.0))
+    torch.testing.assert_close(outputs["loss"], torch.tensor(6.0))
+    torch.testing.assert_close(outputs["grad_x"], torch.tensor(3.0))
 
 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float16])
@@ -87,19 +85,19 @@ def test_distance_matrix(p: int, dtype: torch.dtype) -> None:
     atol = {torch.float32: 1e-5, torch.float16: 2e-3}[dtype]
     rtol = {torch.float32: 2e-6, torch.float16: 2e-3}[dtype]
 
-    assert_close(
+    torch.testing.assert_close(
         output_ipu["output"],
         output_torch["output"],
         rtol=rtol,
         atol=atol,
     )
-    assert_close(
+    torch.testing.assert_close(
         output_ipu["grad_tensor1"],
         output_torch["grad_tensor1"],
         rtol=rtol,
         atol=atol,
     )
-    assert_close(
+    torch.testing.assert_close(
         output_ipu["grad_tensor2"],
         output_torch["grad_tensor2"],
         rtol=rtol,

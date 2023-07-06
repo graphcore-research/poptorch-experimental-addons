@@ -13,7 +13,7 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
-    container: graphcore/pytorch:3.2.0-ubuntu-20.04
+    container: graphcore/pytorch:3.3.0-ubuntu-20.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
@@ -23,7 +23,10 @@ jobs:
           apt-get install -y clang-format
           pip install -r requirements-dev.txt
       - name: Run CI
-        run: ./dev ci
+        run: |
+          source /opt/setup-bash-env.sh
+          ./dev ci
+        shell: bash
       - name: Publish documentation
         if: ${{github.ref == 'refs/heads/main'}}
         uses: Cecilapp/GitHub-Pages-deploy@v3
