@@ -144,6 +144,23 @@ def quantise_fpx(
             f", actual '{rounding}'"
         )
 
+    if poptorch.isRunningOnIpu():
+        max_exponent_bits = 5
+        max_mantissa_bits = 10
+    else:
+        max_exponent_bits = 8
+        max_mantissa_bits = 23
+    if exponent_bits > max_exponent_bits:
+        raise ValueError(
+            f"quantise_fpx(exponent_bits={exponent_bits}) not supported, maximum"
+            f" number of exponent bits is {max_exponent_bits}"
+        )
+    if mantissa_bits > max_mantissa_bits:
+        raise ValueError(
+            f"quantise_fpx(mantissa_bits={mantissa_bits}) not supported, maximum"
+            f" number of mantissa bits is {max_mantissa_bits}"
+        )
+
     q: Tensor
     if poptorch.isRunningOnIpu():
         (q,) = poptorch.custom_op(

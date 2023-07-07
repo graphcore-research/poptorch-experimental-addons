@@ -173,8 +173,8 @@ def test_quantisation_variants(device: str) -> None:
         return {
             f"y{suffix}": quantise(  # type:ignore[operator]
                 args[f"x{suffix}"],
-                exponent_bits=4,
-                mantissa_bits=3,
+                exponent_bits=5,
+                mantissa_bits=2,
                 rounding="nearest",
             )
             for suffix, quantise in [
@@ -184,7 +184,7 @@ def test_quantisation_variants(device: str) -> None:
             ]
         }
 
-    x = torch.linspace(-300, 300, steps=1000)
+    x = torch.linspace(-1e5, 1e5, steps=1000)
     grad_y = torch.flip(x, (0,))
     out = run_forward_and_backward(
         _fn,
@@ -195,8 +195,8 @@ def test_quantisation_variants(device: str) -> None:
 
     def assert_quantised(t: Tensor) -> None:
         assert len(set(t.tolist())) <= 256
-        torch.testing.assert_close(t.max(), torch.tensor(240.0))
-        torch.testing.assert_close(t.min(), torch.tensor(-240.0))
+        torch.testing.assert_close(t.max(), torch.tensor(57344.0))
+        torch.testing.assert_close(t.min(), torch.tensor(-57344.0))
 
     # quantise_fpx
     assert_quantised(out["y"])
@@ -209,3 +209,16 @@ def test_quantisation_variants(device: str) -> None:
     # quantise_fpx_grad
     assert torch.equal(out["y_grad_only"], x)
     assert_quantised(out["grad_x_grad_only"])
+
+
+def test_quantisation_invalid_settings() -> None:
+    with pytest.raises(ValueError, match="exponent_bits=9"):
+        pea.quantise_fpx(torch.zeros((1,)), exponent_bits=9, mantissa_bits=2)
+    with pytest.raises(ValueError, match="mantissa_bits=24"):
+        pea.quantise_fpx(torch.zeros((1,)), exponent_bits=8, mantissa_bits=24)
+    with pytest.raises(ValueError, match="exponent_bits=6"):
+        run_forward_and_backward(
+            lambda x: dict(y=pea.quantise_fpx(x, exponent_bits=6, mantissa_bits=2)),
+            dict(x=torch.zeros((1,))),
+            device="ipu",
+        )
