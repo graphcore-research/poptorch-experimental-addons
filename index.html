@@ -207,12 +207,212 @@ shape (M, N)</p></div>
                     device=tensor1.device,
                 )
             ],
-            attributes=dict(root_path=str(Path(__file__).parent.parent)),
+            attributes=dict(root_path=str(Path(__file__).parent.parent.absolute())),
         )
     else:
         y = torch.cdist(tensor1, tensor2, p=p)
 
     return y</code></pre>
+</details>
+</dd>
+<dt id="poptorch_experimental_addons.quantise_fpx"><code class="name flex">
+<span>def <span class="ident">quantise_fpx</span></span>(<span>x: torch.Tensor, exponent_bits: int, mantissa_bits: int, rounding: str = 'stochastic', fwd: bool = True, bwd: Optional[bool] = None) ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Quantise the values in a tensor to a lower-precision floating point format.
+Note that this is not a cast; the returned tensor has the same dtype as the input.</p>
+<pre><code>quantise_fpx(tensor(0.2), exponent_bits=2, mantissa_bits=1, rounding="nearest")
+   =&gt; 0.25
+</code></pre>
+<p>By default, quantise in the forward pass and return no gradient.</p>
+<p>exponent_bits, mantissa_bits &ndash; define the FP format (total bits = 1 (sign) + E + M)</p>
+<p>rounding &ndash; either "nearest" or "stochastic"</p>
+<p>fwd &ndash; whether to quantise the forward value</p>
+<p>bwd &ndash; whether to generate &amp; whether to quantise the gradient:
+bwd=None
+&ndash; no gradient
+bwd=False &ndash; unquantised gradient (straight-through estimator)
+bwd=True
+&ndash; quantised gradient</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def quantise_fpx(
+    x: Tensor,
+    exponent_bits: int,
+    mantissa_bits: int,
+    rounding: str = &#34;stochastic&#34;,
+    fwd: bool = True,
+    bwd: Optional[bool] = None,
+) -&gt; Tensor:
+    &#34;&#34;&#34;
+    Quantise the values in a tensor to a lower-precision floating point format.
+    Note that this is not a cast; the returned tensor has the same dtype as the input.
+
+        quantise_fpx(tensor(0.2), exponent_bits=2, mantissa_bits=1, rounding=&#34;nearest&#34;)
+           =&gt; 0.25
+
+    By default, quantise in the forward pass and return no gradient.
+
+    exponent_bits, mantissa_bits -- define the FP format (total bits = 1 (sign) + E + M)
+
+    rounding -- either &#34;nearest&#34; or &#34;stochastic&#34;
+
+    fwd -- whether to quantise the forward value
+
+    bwd -- whether to generate &amp; whether to quantise the gradient:
+           bwd=None  -- no gradient
+           bwd=False -- unquantised gradient (straight-through estimator)
+           bwd=True  -- quantised gradient
+    &#34;&#34;&#34;
+    if rounding not in [&#34;nearest&#34;, &#34;stochastic&#34;]:
+        raise ValueError(
+            &#34;Expected quantise(rounding=?) to be &#39;nearest&#39; or &#39;stochastic&#39;&#34;
+            f&#34;, actual &#39;{rounding}&#39;&#34;
+        )
+
+    if poptorch.isRunningOnIpu():
+        max_exponent_bits = 5
+        max_mantissa_bits = 10
+    else:
+        max_exponent_bits = 8
+        max_mantissa_bits = 23
+    if exponent_bits &gt; max_exponent_bits:
+        raise ValueError(
+            f&#34;quantise_fpx(exponent_bits={exponent_bits}) not supported, maximum&#34;
+            f&#34; number of exponent bits is {max_exponent_bits}&#34;
+        )
+    if mantissa_bits &gt; max_mantissa_bits:
+        raise ValueError(
+            f&#34;quantise_fpx(mantissa_bits={mantissa_bits}) not supported, maximum&#34;
+            f&#34; number of mantissa bits is {max_mantissa_bits}&#34;
+        )
+
+    q: Tensor
+    if poptorch.isRunningOnIpu():
+        (q,) = poptorch.custom_op(
+            name=&#34;SimulatedQuant&#34;,
+            domain_version=1,
+            domain=&#34;ai.graphcore&#34;,
+            inputs=[x],
+            example_outputs=[x],
+            attributes=dict(
+                root_path=str(Path(__file__).parent.parent.absolute()),
+                exponent_bits=exponent_bits,
+                mantissa_bits=mantissa_bits,
+                rounding=rounding,
+                fwd=fwd,
+                bwd={True: &#34;quantise&#34;, False: &#34;ste&#34;, None: &#34;stop&#34;}[bwd],
+            ),
+        )
+        return q
+
+    def _quantise(x: Tensor) -&gt; Tensor:
+        max_exponent = 2 ** (exponent_bits - 1) - 1
+        absmax = 2**max_exponent * (2 - 2**-mantissa_bits)
+        downscale = 2.0 ** (126 - max_exponent)
+        mask = torch.tensor(
+            2 ** (23 - mantissa_bits) - 1, dtype=torch.int32, device=x.device
+        )
+        offset = (
+            torch.randint(  # type:ignore[call-overload]
+                0, mask + 1, x.shape, dtype=torch.int32, device=x.device
+            )
+            if rounding == &#34;stochastic&#34;
+            else mask // 2
+        )
+        # Manually clip to max
+        # Then scale down (to generate appropriate subnormals) &amp; mask off mantissa bits
+        q = x.to(torch.float32)
+        q = torch.clip(x, -absmax, absmax)
+        q /= downscale
+        q = ((q.view(torch.int32) + offset) &amp; ~mask).view(torch.float32)
+        q *= downscale
+        q = q.to(x.dtype)
+        return q
+
+    class F(torch.autograd.Function):
+        @staticmethod
+        def forward(  # type:ignore[override]
+            ctx: torch.autograd.function.FunctionCtx, xx: Tensor
+        ) -&gt; Tensor:
+            return _quantise(xx) if fwd else xx.clone()
+
+        @staticmethod
+        def backward(  # type:ignore[override]
+            ctx: torch.autograd.function.FunctionCtx, grad_y: Tensor
+        ) -&gt; Optional[Tensor]:
+            if bwd is not None:
+                return _quantise(grad_y) if bwd else grad_y
+            return None
+
+    q = F.apply(x)  # type:ignore[no-untyped-call]
+    return q</code></pre>
+</details>
+</dd>
+<dt id="poptorch_experimental_addons.quantise_fpx_grad"><code class="name flex">
+<span>def <span class="ident">quantise_fpx_grad</span></span>(<span>x: torch.Tensor, exponent_bits: int, mantissa_bits: int, rounding: str = 'stochastic') ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Quantise the gradient while leaving the forward value unchanged.</p>
+<p>See <code><a title="poptorch_experimental_addons.quantise_fpx" href="#poptorch_experimental_addons.quantise_fpx">quantise_fpx()</a></code> for more detail.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def quantise_fpx_grad(
+    x: Tensor,
+    exponent_bits: int,
+    mantissa_bits: int,
+    rounding: str = &#34;stochastic&#34;,
+) -&gt; Tensor:
+    &#34;&#34;&#34;
+    Quantise the gradient while leaving the forward value unchanged.
+
+    See `quantise_fpx` for more detail.
+    &#34;&#34;&#34;
+    return quantise_fpx(
+        x,
+        exponent_bits=exponent_bits,
+        mantissa_bits=mantissa_bits,
+        rounding=rounding,
+        fwd=False,
+        bwd=True,
+    )</code></pre>
+</details>
+</dd>
+<dt id="poptorch_experimental_addons.quantise_fpx_ste"><code class="name flex">
+<span>def <span class="ident">quantise_fpx_ste</span></span>(<span>x: torch.Tensor, exponent_bits: int, mantissa_bits: int, rounding: str = 'stochastic') ‑> torch.Tensor</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Quantise the forward value while leaving the gradient unchanged, as a
+straight-through estimator.</p>
+<p>See <code><a title="poptorch_experimental_addons.quantise_fpx" href="#poptorch_experimental_addons.quantise_fpx">quantise_fpx()</a></code> for more detail.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def quantise_fpx_ste(
+    x: Tensor,
+    exponent_bits: int,
+    mantissa_bits: int,
+    rounding: str = &#34;stochastic&#34;,
+) -&gt; Tensor:
+    &#34;&#34;&#34;
+    Quantise the forward value while leaving the gradient unchanged, as a
+    straight-through estimator.
+
+    See `quantise_fpx` for more detail.
+    &#34;&#34;&#34;
+    return quantise_fpx(
+        x,
+        exponent_bits=exponent_bits,
+        mantissa_bits=mantissa_bits,
+        rounding=rounding,
+        fwd=True,
+        bwd=False,
+    )</code></pre>
 </details>
 </dd>
 </dl>
@@ -237,6 +437,9 @@ shape (M, N)</p></div>
 <ul class="">
 <li><code><a title="poptorch_experimental_addons.autograd_proxy" href="#poptorch_experimental_addons.autograd_proxy">autograd_proxy</a></code></li>
 <li><code><a title="poptorch_experimental_addons.distance_matrix" href="#poptorch_experimental_addons.distance_matrix">distance_matrix</a></code></li>
+<li><code><a title="poptorch_experimental_addons.quantise_fpx" href="#poptorch_experimental_addons.quantise_fpx">quantise_fpx</a></code></li>
+<li><code><a title="poptorch_experimental_addons.quantise_fpx_grad" href="#poptorch_experimental_addons.quantise_fpx_grad">quantise_fpx_grad</a></code></li>
+<li><code><a title="poptorch_experimental_addons.quantise_fpx_ste" href="#poptorch_experimental_addons.quantise_fpx_ste">quantise_fpx_ste</a></code></li>
 </ul>
 </li>
 </ul>
