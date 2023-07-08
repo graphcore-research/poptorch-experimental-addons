@@ -185,7 +185,7 @@ def test_quantisation_variants(device: str) -> None:
         }
 
     x = torch.linspace(-1e5, 1e5, steps=1000)
-    grad_y = torch.flip(x, (0,))
+    grad_y = torch.flip(x, (0,))  # different grads, same range
     out = run_forward_and_backward(
         _fn,
         {name: x for name in ["x", "x_ste", "x_grad_only"]},
