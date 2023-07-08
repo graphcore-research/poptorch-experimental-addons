@@ -54,9 +54,10 @@ def build() -> None:
     run(["make", "-j"])
 
 
+@cli("-s", "--no-capture", action="store_false", dest="capture")
 @cli("-k", "--filter")
 @cli("--gdb", action="store_true")
-def tests(filter: Optional[str], gdb: bool) -> None:
+def tests(capture: bool, filter: Optional[str], gdb: bool) -> None:
     """run Python tests"""
     build()
     run(
@@ -67,6 +68,7 @@ def tests(filter: Optional[str], gdb: bool) -> None:
             "tests",
             None if filter else "--cov=poptorch_experimental_addons",
             *(["-k", filter] if filter else []),
+            None if capture else "-s",
         ],
         gdb=gdb,
     )
@@ -158,7 +160,7 @@ def doc() -> None:
 def ci(skip: List[str] = []) -> None:
     """run all continuous integration tests & checks"""
     if "tests" not in skip:
-        tests(filter=None, gdb=False)
+        tests(capture=True, filter=None, gdb=False)
     if "lint" not in skip:
         lint()
     if "format" not in skip:
